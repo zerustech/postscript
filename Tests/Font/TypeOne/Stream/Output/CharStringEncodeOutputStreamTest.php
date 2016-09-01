@@ -81,7 +81,7 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
             'seac' => [12, 6],
             'sbw' => [12, 7],
             'div' => [12, 12],
-            'calltothersubr' => [12, 16],
+            'callothersubr' => [12, 16],
             'pop' => [12, 17],
             'setcurrentpoint' => [12, 33],
         ];
@@ -94,7 +94,30 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($decodedFile, $encodedFile, $length)
+    public function testOutput($decoded, $encoded)
+    {
+        $out = new StringOutputStream();
+        $encoder = new CharStringEncodeOutputStream($out);
+        $encoder->write($decoded);
+        $this->assertEquals(strtoupper(bin2hex($out->__toString())), str_replace(' ', '', trim($encoded)));
+    }
+
+    public function getDataForTestOutput()
+    {
+        return [
+            ["-107 -100 0 100 107", "20 27 8B EF F6"],
+            ["108 500 1131", "F700 F888 FAFF"],
+            ["-1131 -500 -108", "FEFF FC88 FB00"],
+            ["-40000 -32001 -32000 -1132 1132 32000 32001 40000", "FFFFFF63C0890C0C FFFFFF82FF890C0C FFFFFF8300 FFFFFFFB94 FF0000046C FF00007D00 FF00007D018D0C0C FF00009C408D0C0C"],
+            ["hstem vstem vmoveto rlineto hlineto vlineto rrcurveto closepath callsubr return hsbw endchar rmoveto hmoveto vhcurveto hvcurveto dotsection vstem3 hstem3 seac sbw div callothersubr pop setcurrentpoint",
+            "01 03 04 05 06 07 08 09 0A 0B 0D 0E 15 16 1E 1F 0C00 0C01 0C02 0C06 0C07 0C0C 0C10 0C11 0C21"],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestOutputWithFile
+     */
+    public function testOutputWithFile($decodedFile, $encodedFile, $length)
     {
         $decodedFile = $this->base.$decodedFile;
 
@@ -113,7 +136,7 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    public function getDataForTestOutput()
+    public function getDataForTestOutputWithFile()
     {
         return [
             ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 32]
