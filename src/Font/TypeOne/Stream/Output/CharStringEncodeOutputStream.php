@@ -217,7 +217,7 @@ class CharStringEncodeOutputStream extends FilterOutputStream
 
         if (abs($token) > 32000) {
 
-            $b = $token > 0 ? (int)round($token / 32000) + 1 : (int)round($token / 32000) - 1;
+            $b = $token > 0 ? (int)round($token / 32000) + 1 : abs((int)round($token / 32000) - 1);
 
             $encoded = $encoded.$this->encode((string)$b).$this->encode('div');
         }
