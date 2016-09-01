@@ -49,7 +49,7 @@ class CharStringEncodeOutputStream extends FilterOutputStream
         'seac' => [12, 6],
         'sbw' => [12, 7],
         'div' => [12, 12],
-        'calltothersubr' => [12, 16],
+        'callothersubr' => [12, 16],
         'pop' => [12, 17],
         'setcurrentpoint' => [12, 33],
     ];
@@ -215,9 +215,9 @@ class CharStringEncodeOutputStream extends FilterOutputStream
 
         $encoded = chr(255).chr($token >> 24 & 0xff).chr($token >> 16 & 0xff).chr($token >> 8 & 0xff).chr($token & 0xff);
 
-        if ($token > 32000) {
+        if (abs($token) > 32000) {
 
-            $b = (int)round($token / 32000) + 1;
+            $b = $token > 0 ? (int)round($token / 32000) + 1 : (int)round($token / 32000) - 1;
 
             $encoded = $encoded.$this->encode((string)$b).$this->encode('div');
         }
@@ -269,6 +269,13 @@ class CharStringEncodeOutputStream extends FilterOutputStream
             }
 
             $this->buffer .= $bytes[$i];
+        }
+
+        if (0 !== strlen($this->buffer)) {
+
+            $charstring .= $this->encode($this->buffer);
+
+            $this->buffer = '';
         }
 
         return parent::output($charstring);
