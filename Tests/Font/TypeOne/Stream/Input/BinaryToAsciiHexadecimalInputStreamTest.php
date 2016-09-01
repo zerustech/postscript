@@ -18,7 +18,7 @@ use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Exception;
 
 /**
- * Test case for file ascii hexadecimal to binary input stream.
+ * Test case for file binary to ascii hexadecimal input stream.
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
