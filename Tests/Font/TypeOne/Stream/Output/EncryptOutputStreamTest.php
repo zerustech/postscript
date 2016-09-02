@@ -145,22 +145,22 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestCharStringBinEncrypt
      */
-    public function testCharStringBinEncrypt($hexSource, $plainSource, $length)
+    public function testCharStringBinEncrypt($encryptedFile, $decryptedFile, $length)
     {
-        $hexSource = $this->base.$hexSource;
+        $encryptedFile = $this->base.$encryptedFile;
 
-        $plainSource = $this->base.$plainSource;
+        $decryptedFile = $this->base.$decryptedFile;
 
-        $hexInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($hexSource, 'rb')));
+        $encryptedInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($encryptedFile, 'rb')));
 
-        $plainInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($plainSource, 'rb')));
+        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($decryptedFile, 'rb')));
 
-        while (-1 !== ($hexInput->read($hex, $length)) && -1 !== ($plainInput->read($plain, $length))) {
+        while (-1 !== ($encryptedInput->read($expected, $length)) && -1 !== ($decryptedInput->read($decrypted, $length))) {
 
             $out = new StringOutputStream();
             $encryptor = new EncryptOutputStream($out, 4330, "\x00\x00\x00\x00");
-            $this->output->invoke($encryptor, $plain);
-            $this->assertEquals($hex, $out->__toString());
+            $this->assertEquals($this->output->invoke($encryptor, $decrypted), $out->size());
+            $this->assertEquals($expected, $out->__toString());
         }
     }
 

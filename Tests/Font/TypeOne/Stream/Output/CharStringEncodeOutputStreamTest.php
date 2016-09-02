@@ -127,18 +127,19 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         $encodedInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
 
-        while (-1 !== ($decodedInput->read($decoded, $length)) && -1 !== ($encodedInput->read($encoded, $length))) {
+        while (-1 !== ($decodedInput->read($decoded, $length)) && -1 !== ($encodedInput->read($expected, $length))) {
 
             $out = new StringOutputStream();
             $encoder = new CharStringEncodeOutputStream($out);
-            $encoder->write($decoded);
-            $this->assertEquals(strtoupper(bin2hex($out->__toString())), trim($encoded));
+            $this->assertEquals($this->output->invoke($encoder, $decoded), $out->size());
+            $this->assertEquals(trim($expected), strtoupper(bin2hex($out->__toString())));
         }
     }
 
     public function getDataForTestOutputWithFile()
     {
         return [
+            ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 1],
             ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 32]
         ];
     }
