@@ -95,20 +95,22 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $stream = new BinaryToAsciiHexadecimalOutputStream($out);
 
+        $column = 0;
+
         if ($skip > 0) {
 
             $in->read($bytes, $skip);
+
+            $this->output->invoke($stream, $bytes);
+
+            $column = strlen($bytes) % $width;
         }
-
-        $this->output->invokeArgs($stream, [&$bytes]);
-
-        $column = strlen($bytes) % $width;
 
         $stream = new BinaryToAsciiHexadecimalOutputStream($out, $column, true, $width);
 
         while (-1 !== $in->read($bytes, $length)) {
 
-            $this->output->invokeArgs($stream, [&$bytes]);
+            $this->output->invoke($stream, $bytes);
         }
 
         $this->assertEquals(file_get_contents($hexFile), $out->__toString());

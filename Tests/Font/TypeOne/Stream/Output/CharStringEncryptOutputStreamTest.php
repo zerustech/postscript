@@ -96,7 +96,7 @@ class CharStringEncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
 
             $out = new StringOutputStream();
             $encryptor = new CharStringEncryptOutputStream($out, $seeds);
-            $encryptor->write($plainBin);
+            $this->output->invoke($encryptor, $plainBin);
             $this->assertEquals(trim($cipherHex), strtoupper(bin2hex($out->__toString())));
         }
     }
