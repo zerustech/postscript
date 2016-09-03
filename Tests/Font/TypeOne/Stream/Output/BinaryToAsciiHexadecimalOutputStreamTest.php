@@ -83,7 +83,32 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($binFile, $hexFile, $length, $skip, $width)
+    public function testOutput($bin, $expected, $count, $column, $width)
+    {
+        $out = new StringOutputStream();
+        $stream = new BinaryToAsciiHexadecimalOutputStream($out, $column, true, $width);
+        $this->assertEquals($count, $this->output->invoke($stream, $bin));
+        $this->assertEquals($expected, $out->__toString());
+    }
+
+    public function getDataForTestOutput()
+    {
+        return [
+            ["hello", "68656C6C6F\n", 11, 0, 5],
+            ["hellohel", "68656C6C6F\n68656C", 17, 0, 5],
+            ["hellohellohel", "68656C6C6F\n68656C6C6F\n68656C", 28, 0, 5],
+            ["hellohellohel", "68656C6C\n6F68656C6C\n6F68656C", 28, 1, 5],
+            ["hellohellohel", "68656C\n6C6F68656C\n6C6F68656C\n", 29, 2, 5],
+            ["hellohellohel", "6865\n6C6C6F6865\n6C6C6F6865\n6C", 29, 3, 5],
+            ["hellohellohel", "68\n656C6C6F68\n656C6C6F68\n656C", 29, 4, 5],
+            ["hellohellohel", "68656C6C6F\n68656C6C6F\n68656C", 28, 5, 5],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestOutputWithFile
+     */
+    public function testOutputWithFile($binFile, $hexFile, $length, $skip, $width)
     {
         $binFile = $this->base.$binFile;
 
@@ -116,7 +141,7 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
         $this->assertEquals(file_get_contents($hexFile), $out->__toString());
     }
 
-    public function getDataForTestOutput()
+    public function getDataForTestOutputWithFile()
     {
         return [
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 1, 0, 32],

@@ -82,7 +82,31 @@ class CharStringEncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($cipherFile, $plainFile, $seeds, $length)
+    public function testOutput($decrypted, $expected, $count)
+    {
+        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decrypted));
+        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
+
+        $decryptedInput->read($decryptedBin, strlen($decrypted));
+        $expectedInput->read($expectedBin, strlen($expected));
+
+        $out = new StringOutputStream();
+        $stream = new CharStringEncryptOutputStream($out);
+        $this->assertEquals($count, $this->output->invoke($stream, $decryptedBin));
+        $this->assertEquals($expectedBin, $out->__toString());
+    }
+
+    public function getDataForTestOutput()
+    {
+        return [
+            ["68 65 6c 6c 6F", "10 BF 31 70 9A A9 E3 3D EE", 9]
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestOutputWithFile
+     */
+    public function testOutputWithFile($cipherFile, $plainFile, $seeds, $length)
     {
         $cipherFile = $this->base.$cipherFile;
 
@@ -96,12 +120,12 @@ class CharStringEncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
 
             $out = new StringOutputStream();
             $encryptor = new CharStringEncryptOutputStream($out, $seeds);
-            $this->output->invoke($encryptor, $plainBin);
+            $this->assertEquals($this->output->invoke($encryptor, $plainBin), $out->size());
             $this->assertEquals(trim($cipherHex), strtoupper(bin2hex($out->__toString())));
         }
     }
 
-    public function getDataForTestOutput()
+    public function getDataForTestOutputWithFile()
     {
         return [
             ['charstring-encrypted-as-hex-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', "\x00\x00\x00\x00", 1],

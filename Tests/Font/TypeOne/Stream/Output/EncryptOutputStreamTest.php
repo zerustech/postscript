@@ -83,7 +83,55 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestEexecBinEncrypt
      */
-    public function testEexecBinEncrypt($binSource, $plainSource, $length)
+    public function testEexecBinEncrypt($decrypted, $expected, $count)
+    {
+        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decrypted));
+        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
+        $decryptedInput->read($decryptedBin, strlen($decrypted));
+        $expectedInput->read($expectedBin, strlen($expected));
+
+        $out = new StringOutputStream();
+        $stream = new EncryptOutputStream($out, 55665, '0000');
+
+        $this->assertEquals($count, $this->output->invoke($stream, $decryptedBin));
+        $this->assertEquals($expectedBin, $out->__toString());
+    }
+
+    public function getDataForTestEexecBinEncrypt()
+    {
+        return [
+            ['68 65 6C 6C 6F', 'E9 8D 09 D7 6C E6 99 52 F0', 9],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestCharStringBinEncrypt
+     */
+    public function testOutput($decrypted, $expected, $count)
+    {
+        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decrypted));
+        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
+
+        $decryptedInput->read($decryptedBin, strlen($decrypted));
+        $expectedInput->read($expectedBin, strlen($expected));
+
+        $out = new StringOutputStream();
+        $stream = new EncryptOutputStream($out, 4330, "\x00\x00\x00\x00");
+        $this->assertEquals($count, $this->output->invoke($stream, $decryptedBin));
+        $this->assertEquals($expectedBin, $out->__toString());
+    }
+
+    public function getDataForTestCharStringBinEncrypt()
+    {
+        return [
+            ["68 65 6c 6c 6F", "10 BF 31 70 9A A9 E3 3D EE", 9]
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestEexecBinEncryptWithFile
+     */
+    public function testEexecBinEncryptWithFile($binSource, $plainSource, $length)
     {
         $binSource = $this->base.$binSource;
 
@@ -103,7 +151,7 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($out->__toString(), file_get_contents($binSource));
     }
 
-    public function getDataForTestEexecBinEncrypt()
+    public function getDataForTestEexecBinEncryptWithFile()
     {
         return [
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 1],
@@ -112,9 +160,9 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider getDataForTestEexecHexEncrypt
+     * @dataProvider getDataForTestEexecHexEncryptWithFile
      */
-    public function testEexecHexEncrypt($hexSource, $plainSource, $length)
+    public function testEexecHexEncryptWithFile($hexSource, $plainSource, $length)
     {
         $hexSource = $this->base.$hexSource;
 
@@ -134,7 +182,7 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($out->__toString(), file_get_contents($hexSource));
     }
 
-    public function getDataForTestEexecHexEncrypt()
+    public function getDataForTestEexecHexEncryptWithFile()
     {
         return [
             ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 1],
@@ -143,9 +191,9 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider getDataForTestCharStringBinEncrypt
+     * @dataProvider getDataForTestCharStringBinEncryptWithFile
      */
-    public function testCharStringBinEncrypt($encryptedFile, $decryptedFile, $length)
+    public function testCharStringBinEncryptWithFile($encryptedFile, $decryptedFile, $length)
     {
         $encryptedFile = $this->base.$encryptedFile;
 
@@ -164,7 +212,7 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    public function getDataForTestCharStringBinEncrypt()
+    public function getDataForTestCharStringBinEncryptWithFile()
     {
         return [
             ['charstring-encrypted-as-hex-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 16],

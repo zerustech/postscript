@@ -61,7 +61,29 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($binFile, $hexFile, $length)
+    public function testOutput($hex, $expected, $count)
+    {
+        $out = new StringOutputStream();
+        $stream = new AsciiHexadecimalToBinaryOutputStream($out);
+        $this->assertEquals($count, $this->output->invoke($stream, $hex));
+        $this->assertEquals($expected, $out->__toString());
+    }
+
+    public function getDataForTestOutput()
+    {
+        return [
+            ['68656C6C6F', 'hello', 5],
+            ['', '', 0],
+            ['6', '', 0],
+            ['68', 'h', 1],
+            ['686', 'h', 1],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestOutputWithFile
+     */
+    public function testOutputWithFile($binFile, $hexFile, $length)
     {
         $binFile = $this->base.$binFile;
 
@@ -81,7 +103,7 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
         $this->assertEquals(file_get_contents($binFile), $out->__toString());
     }
 
-    public function getDataForTestOutput()
+    public function getDataForTestOutputWithFile()
     {
         return [
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 1],

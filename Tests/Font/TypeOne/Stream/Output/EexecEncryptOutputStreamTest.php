@@ -13,6 +13,7 @@ namespace ZerusTech\Component\Postscript\Tests\Font\TypeOne\Stream\Output;
 
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Output\EexecEncryptOutputStream;
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Output\BinaryToAsciiHexadecimalOutputStream;
+use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\AsciiHexadecimalToBinaryInputStream;
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
 use ZerusTech\Component\IO\Stream\Output\OutputStreamInterface;
@@ -78,9 +79,33 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider getDataForTestEexecBinEncrypt
+     * @dataProvider getDataForTestOutput
      */
-    public function testEexecBinEncrypt($binSource, $plainSource, $length)
+    public function testOutput($decrypted, $expected, $count)
+    {
+        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decrypted));
+        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
+        $decryptedInput->read($decryptedBin, strlen($decrypted));
+        $expectedInput->read($expectedBin, strlen($expected));
+
+        $out = new StringOutputStream();
+        $stream = new EexecEncryptOutputStream($out);
+
+        $this->assertEquals($count, $this->output->invoke($stream, $decryptedBin));
+        $this->assertEquals($expectedBin, $out->__toString());
+    }
+
+    public function getDataForTestOutput()
+    {
+        return [
+            ['68 65 6C 6C 6F', 'E9 8D 09 D7 6C E6 99 52 F0', 9],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestEexecBinEncryptWithFile
+     */
+    public function testEexecBinEncryptWithFile($binSource, $plainSource, $length)
     {
         $binSource = $this->base.$binSource;
 
@@ -100,7 +125,7 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($out->__toString(), file_get_contents($binSource));
     }
 
-    public function getDataForTestEexecBinEncrypt()
+    public function getDataForTestEexecBinEncryptWithFile()
     {
         return [
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 1],
@@ -109,9 +134,9 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider getDataForTestEexecHexEncrypt
+     * @dataProvider getDataForTestEexecHexEncryptWithFile
      */
-    public function testEexecHexEncrypt($hexSource, $plainSource, $length)
+    public function testEexecHexEncryptWithFile($hexSource, $plainSource, $length)
     {
         $hexSource = $this->base.$hexSource;
 
@@ -131,7 +156,7 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($out->__toString(), file_get_contents($hexSource));
     }
 
-    public function getDataForTestEexecHexEncrypt()
+    public function getDataForTestEexecHexEncryptWithFile()
     {
         return [
             ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 1],
