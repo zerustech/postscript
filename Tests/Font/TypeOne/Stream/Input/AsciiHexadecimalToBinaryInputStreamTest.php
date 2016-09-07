@@ -47,10 +47,17 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
         $this->base = null;
     }
 
+    public function testConstruct()
+    {
+        $in = new StringInputStream('hello');
+        $stream = new AsciiHexadecimalToBinaryInputStream($in);
+        $this->assertEquals([], $this->buffer->getValue($stream));
+    }
+
     /**
      * @dataProvider getDataForTestInput
      */
-    public function testInput($hex, $offset, $length, $bin, $count, $skipped, $available)
+    public function testInput($hex, $offset, $length, $expected, $count, $skipped, $available)
     {
         $in = new StringInputStream($hex);
 
@@ -60,7 +67,7 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($bin, $bytes);
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
