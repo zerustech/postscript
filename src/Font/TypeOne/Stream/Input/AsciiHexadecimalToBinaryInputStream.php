@@ -51,28 +51,32 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
 
         $bytes = '';
 
-        $count = parent::input($hex, $length);
+        while ($remaining > 0) {
 
-        for ($i = 0; $i < strlen($hex); $i++) {
+            if (-1 === $count = parent::input($hex, 2 * $remaining)) {
 
-            if (1 === preg_match("/^[ \t\r\n]$/", $hex[$i])) {
-
-                $remaining--;
-
-                continue;
+                break;
             }
 
-            $this->buffer[] = $hex[$i];
+            for ($i = 0; $i < strlen($hex); $i++) {
 
-            if (2 === count($this->buffer)) {
+                if (1 === preg_match("/^[ \t\r\n]$/", $hex[$i])) {
 
-                $bytes .= chr(hexdec(array_shift($this->buffer).array_shift($this->buffer)));
+                    continue;
+                }
 
-                $remaining -= 2;
+                $this->buffer[] = $hex[$i];
+
+                if (2 === count($this->buffer)) {
+
+                    $bytes .= chr(hexdec(array_shift($this->buffer).array_shift($this->buffer)));
+
+                    $remaining--;
+                }
             }
         }
 
-        return -1 === $count ? -1 : $length - $remaining;
+        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
     }
 
     /**
@@ -80,6 +84,6 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
      */
     public function available()
     {
-        return count($this->buffer) + parent::available();
+        return (int)round((count($this->buffer) + parent::available()) / 2);
     }
 }
