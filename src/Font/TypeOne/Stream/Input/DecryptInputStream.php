@@ -76,40 +76,59 @@ class DecryptInputStream extends FilterInputStream
 
     /**
      * {@inheritdoc}
+     */
+    public function available()
+    {
+        return parent::available() - ($this->n - $this->skipped);
+    }
+
+    /**
+     * {@inheritdoc}
      *
-     * This method reads up to ``$length`` bytes ciphertext from the subordinate
-     * stream, decrypts the ciphertext into ``$bytes`` and returns the
-     * actual number of bytes read.
+     * This method keeps reading ciphertext bytes from the subordinate stream
+     * and decrypting the ciphertext into ``$bytes``, untill ``$length`` bytes
+     * have been decrypted.
      *
-     * @param string $bytes The buffer into which the plain text will be
-     * stored.
-     * @param int $length The number of bytes to be read from the input stream.
-     * @return int The actual number of bytes read from the ciphertext input stream, or -1 if eof.
+     * It returns the number of decrypted bytes, or -1 if EOF.
+     *
+     * @param string $bytes The buffer into which the plain text will be stored.
+     * @param int $length The requested number of bytes to be decrypted.
+     * @return int The actual number of decrypted bytes, or -1 if eof.
      */
     protected function input(&$bytes, $length)
     {
+        $remaining = $length;
+
         $bytes = '';
 
-        $count = parent::input($cipherText, $length);
+        while ($remaining > 0) {
 
-        for ($i = 0; $i < strlen($cipherText); $i++) {
+            if (-1 === $count = parent::input($cipherText, 1)) {
 
-            $cipherByte = ord($cipherText[$i]);
-
-            $plainByte = ($cipherByte ^ ($this->r >> 8));
-
-            $this->r = (($cipherByte + $this->r) * $this->c1 + $this->c2) % 65536;
-
-            if ($this->skipped < $this->n) {
-
-                $this->skipped++;
-
-                continue;
+                break;
             }
 
-            $bytes .= chr($plainByte);
+            for ($i = 0; $i < strlen($cipherText); $i++) {
+
+                $cipherByte = ord($cipherText[$i]);
+
+                $plainByte = ($cipherByte ^ ($this->r >> 8));
+
+                $this->r = (($cipherByte + $this->r) * $this->c1 + $this->c2) % 65536;
+
+                if ($this->skipped < $this->n) {
+
+                    $this->skipped++;
+
+                    continue;
+                }
+
+                $bytes .= chr($plainByte);
+
+                $remaining--;
+            }
         }
 
-        return $count;
+        return (-1 === $count && $remaining === $length) ? -1 : strlen($bytes);
     }
 }
