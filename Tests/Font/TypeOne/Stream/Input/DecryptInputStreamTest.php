@@ -85,13 +85,11 @@ class DecryptInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($R, $n, $encrypted, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $encryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted));
-
         $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
 
         $expectedInput->read($expectedBin, strlen($expected));
 
-        $stream = new DecryptInputStream($encryptedInput, $R, $n);
+        $stream = new DecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted)), $R, $n);
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -121,11 +119,11 @@ class DecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $plainFile = $this->base.$plainFile;
 
-        $input = new DecryptInputStream(new FileInputStream($cipherFile, 'rb'), 55665, 4);
+        $stream = new DecryptInputStream(new FileInputStream($cipherFile, 'rb'), 55665, 4);
 
         $output = new StringOutputStream();
 
-        while (-1 !== $this->input->invokeArgs($input, [&$bytes, $length])) {
+        while (-1 !== $this->input->invokeArgs($stream, [&$bytes, $length])) {
 
             $output->write($bytes);
         }
@@ -151,11 +149,11 @@ class DecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $plainFile = $this->base.$plainFile;
 
-        $input = new DecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new FileInputStream($cipherFile, 'rb')), 55665, 4);
+        $stream = new DecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new FileInputStream($cipherFile, 'rb')), 55665, 4);
 
         $output = new StringOutputStream();
 
-        while (-1 !== ($this->input->invokeArgs($input, [&$bytes, $length]))) {
+        while (-1 !== ($this->input->invokeArgs($stream, [&$bytes, $length]))) {
 
             $output->write($bytes);
         }
@@ -189,9 +187,9 @@ class DecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
             $stream = new DecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($cipherHex)), 4330, 4);
 
-            $plainInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
+            $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
 
-            $plainInput->read($plainBin, strlen($plainHex) / 2);
+            $hex2bin->read($plainBin, strlen($plainHex) / 2);
 
             $this->input->invokeArgs($stream, [&$bytes, strlen($cipherHex) / 2]);
 

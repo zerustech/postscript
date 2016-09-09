@@ -85,13 +85,11 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($encrypted, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $encryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted));
-
         $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
 
         $expectedInput->read($expectedBin, strlen($expected));
 
-        $stream = new CharStringDecryptInputStream($encryptedInput);
+        $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted)));
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -124,9 +122,9 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         while (-1 !== ($cipherLineInput->read($cipherHex, $length)) && -1 !== ($plainLineInput->read($plainHex, $length))) {
 
-            $plainInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
+            $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
 
-            $plainInput->read($plainBin, strlen($plainHex) / 2);
+            $hex2bin->read($plainBin, strlen($plainHex) / 2);
 
             $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($cipherHex)), $n);
 

@@ -84,13 +84,11 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($encrypted, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $encryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted));
-
         $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
 
         $expectedInput->read($expectedBin, strlen($expected));
 
-        $stream = new EexecDecryptInputStream($encryptedInput);
+        $stream = new EexecDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted)));
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -118,11 +116,11 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $plainFile = $this->base.$plainFile;
 
-        $input = new EexecDecryptInputStream(new FileInputStream($binFile, 'rb'));
+        $stream = new EexecDecryptInputStream(new FileInputStream($binFile, 'rb'));
 
         $output = new StringOutputStream();
 
-        while (-1 !== $this->input->invokeArgs($input, [&$bytes, $length])) {
+        while (-1 !== $this->input->invokeArgs($stream, [&$bytes, $length])) {
 
             $output->write($bytes);
         }

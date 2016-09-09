@@ -60,14 +60,14 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructor()
     {
-        $src = new FileInputStream($this->base.'NimbusRomanNo9L-Regular.pfb', 'rb');
+        $in = new FileInputStream($this->base.'NimbusRomanNo9L-Regular.pfb', 'rb');
 
-        $input = new PfbToPfaInputStream($src);
+        $stream = new PfbToPfaInputStream($in);
 
-        $this->assertEquals('', $this->buffer->getValue($input));
-        $this->assertNull($this->header->getValue($input));
-        $this->assertFalse($this->ready->getValue($input));
-        $this->assertEquals(0, $this->offset->getValue($input));
+        $this->assertEquals('', $this->buffer->getValue($stream));
+        $this->assertNull($this->header->getValue($stream));
+        $this->assertFalse($this->ready->getValue($stream));
+        $this->assertEquals(0, $this->offset->getValue($stream));
     }
 
     /**
@@ -75,13 +75,13 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($convertToHex, $width, $pfb, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $pfbInput = new PfbToPfaInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($pfb)), $convertToHex, $width);
+        $stream = new PfbToPfaInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($pfb)), $convertToHex, $width);
 
-        $this->assertEquals($skipped, $pfbInput->skip($offset));
+        $this->assertEquals($skipped, $stream->skip($offset));
 
-        $this->assertEquals($count, $this->input->invokeArgs($pfbInput, [&$bytes, $length]));
+        $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($available, $pfbInput->available());
+        $this->assertEquals($available, $stream->available());
 
         $this->assertEquals($expected, $bytes);
     }
@@ -108,9 +108,7 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $pfaFile = $this->base.$pfaFile;
 
-        $pfbInput = new FileInputStream($pfbFile, 'rb');
-
-        $stream = new PfbToPfaInputStream($pfbInput, $convertToHex);
+        $stream = new PfbToPfaInputStream(new FileInputStream($pfbFile, 'rb'), $convertToHex);
 
         $output = new StringOutputStream();
 

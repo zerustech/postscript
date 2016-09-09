@@ -88,9 +88,7 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
      */
     public function testInput($column, $format, $width, $bin, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $in = new StringInputStream($bin);
-
-        $stream = new BinaryToAsciiHexadecimalInputStream($in, $column, $format, $width);
+        $stream = new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bin), $column, $format, $width);
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -136,9 +134,7 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
 
         $binFile = $this->base.$binFile;
 
-        $in = new FileInputStream($binFile, 'rb');
-
-        $stream = new BinaryToAsciiHexadecimalInputStream($in);
+        $stream = new BinaryToAsciiHexadecimalInputStream(new FileInputStream($binFile, 'rb'));
 
         $out = new StringOutputStream();
 

@@ -140,17 +140,17 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $encodedFile = $this->base.$encodedFile;
 
-        $encodedInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
+        $encodedLineInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
 
-        $decodedInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
+        $decodedLineInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
 
-        while (-1 !== ($encodedInput->read($encoded, $length)) && -1 !== ($decodedInput->read($expected, $length))) {
+        while (-1 !== ($encodedLineInput->read($encoded, $length)) && -1 !== ($decodedLineInput->read($expected, $length))) {
 
-            $decoder = new CharStringDecodeInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded)));
+            $stream = new CharStringDecodeInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded)));
 
             $decoded = '';
 
-            while (-1 !== $this->input->invokeArgs($decoder, [&$bytes, $length])) {
+            while (-1 !== $this->input->invokeArgs($stream, [&$bytes, $length])) {
 
                 $decoded .= $bytes;
             }
