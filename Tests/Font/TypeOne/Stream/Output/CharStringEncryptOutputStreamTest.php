@@ -112,11 +112,14 @@ class CharStringEncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         $plainFile = $this->base.$plainFile;
 
-        $cipherInput = new LineInputStream(new FileInputStream($cipherFile, 'rb'));
+        $cipherLineInput = new LineInputStream(new FileInputStream($cipherFile, 'rb'));
 
-        $plainInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($plainFile, 'rb')));
+        $plainLineInput = new LineInputStream(new FileInputStream($plainFile, 'rb'));
 
-        while (-1 !== ($cipherInput->read($cipherHex, $length)) && -1 !== ($plainInput->read($plainBin, $length))) {
+        while (-1 !== ($cipherLineInput->read($cipherHex, $length)) && -1 !== ($plainLineInput->read($plainHex, $length))) {
+
+            $plainInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
+            $plainInput->read($plainBin, strlen($plainHex) / 2);
 
             $out = new StringOutputStream();
             $encryptor = new CharStringEncryptOutputStream($out, $seeds);
