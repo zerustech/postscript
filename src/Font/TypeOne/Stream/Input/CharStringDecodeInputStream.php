@@ -72,6 +72,54 @@ class CharStringDecodeInputStream extends FilterInputStream
     }
 
     /**
+     * {@inheritdoc}
+     *
+     * Because it's impossible to predict the length of decoded bytes, this
+     * method returns 1 if the subordinate stream is still available, or 0
+     * otherwise.
+     */
+    public function available()
+    {
+        return parent::available() > 0 ? 1 : 0;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * This methods keeps reading bytes from the subordinate stream and
+     * decoding the data into ``$bytes``, untill ``$length`` bytes have been
+     * decoded.
+     *
+     * @return int The number of bytes decoded, or -1 if EOF.
+     */
+    protected function input(&$bytes, $length)
+    {
+        $remaining = $length;
+
+        $bytes = '';
+
+        while ($remaining > 0) {
+
+            if (-1 === $count = parent::input($encoded, 1)) {
+
+                break;
+            }
+
+            for ($i = 0; $i < strlen($encoded); $i++) {
+
+                if (null !== ($decoded = $this->decode($encoded[$i]))) {
+
+                    $bytes .= $decoded.' ';
+
+                    $remaining -= (strlen($decoded) + 1);
+                }
+            }
+        }
+
+        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
+    }
+
+    /**
      * This method tries to decode the provided byte as well as the buffered
      * bytes to plain text, if possible. The decoded plain text is returned, or
      * null if the bytes can not be decoded yet. If the byte is pushed into the
@@ -230,53 +278,5 @@ class CharStringDecodeInputStream extends FilterInputStream
         $this->buffer = '';
 
         return $this->commands[12][ord($byte)];
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * This methods keeps reading bytes from the subordinate stream and
-     * decoding the data into ``$bytes``, untill ``$length`` bytes have been
-     * decoded.
-     *
-     * @return int The number of bytes decoded, or -1 if EOF.
-     */
-    protected function input(&$bytes, $length)
-    {
-        $remaining = $length;
-
-        $bytes = '';
-
-        while ($remaining > 0) {
-
-            if (-1 === $count = parent::input($encoded, 1)) {
-
-                break;
-            }
-
-            for ($i = 0; $i < strlen($encoded); $i++) {
-
-                if (null !== ($decoded = $this->decode($encoded[$i]))) {
-
-                    $bytes .= $decoded.' ';
-
-                    $remaining -= (strlen($decoded) + 1);
-                }
-            }
-        }
-
-        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * Because it's impossible to predict the length of decoded bytes, this
-     * method returns 1 if the subordinate stream is still available, or 0
-     * otherwise.
-     */
-    public function available()
-    {
-        return parent::available() > 0 ? 1 : 0;
     }
 }
