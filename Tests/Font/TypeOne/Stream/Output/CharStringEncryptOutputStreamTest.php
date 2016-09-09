@@ -118,12 +118,12 @@ class CharStringEncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         while (-1 !== ($cipherLineInput->read($cipherHex, $length)) && -1 !== ($plainLineInput->read($plainHex, $length))) {
 
-            $plainInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
-            $plainInput->read($plainBin, strlen($plainHex) / 2);
+            $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
+            $hex2bin->read($plainBin, strlen($plainHex) / 2);
 
             $out = new StringOutputStream();
-            $encryptor = new CharStringEncryptOutputStream($out, $seeds);
-            $this->assertEquals($this->output->invoke($encryptor, $plainBin), $out->size());
+            $stream = new CharStringEncryptOutputStream($out, $seeds);
+            $this->assertEquals($this->output->invoke($stream, $plainBin), $out->size());
             $this->assertEquals(trim($cipherHex), strtoupper(bin2hex($out->__toString())));
         }
     }

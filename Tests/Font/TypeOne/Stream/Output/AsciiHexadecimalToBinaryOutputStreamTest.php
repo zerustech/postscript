@@ -89,13 +89,13 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $hexFile = $this->base.$hexFile;
 
-        $in = new FileInputStream($hexFile, 'rb');
+        $hexInput = new FileInputStream($hexFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new AsciiHexadecimalToBinaryOutputStream($out);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $hexInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }

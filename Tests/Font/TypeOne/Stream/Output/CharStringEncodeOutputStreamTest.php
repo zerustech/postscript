@@ -97,8 +97,8 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
     public function testOutput($decoded, $encoded, $count)
     {
         $out = new StringOutputStream();
-        $encoder = new CharStringEncodeOutputStream($out);
-        $this->assertEquals($count, $this->output->invoke($encoder, $decoded));
+        $stream = new CharStringEncodeOutputStream($out);
+        $this->assertEquals($count, $this->output->invoke($stream, $decoded));
         $this->assertEquals(strtoupper(bin2hex($out->__toString())), str_replace(' ', '', trim($encoded)));
     }
 
@@ -123,15 +123,15 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         $encodedFile = $this->base.$encodedFile;
 
-        $decodedInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
+        $decodedLineInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
 
-        $encodedInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
+        $encodedLineInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
 
-        while (-1 !== ($decodedInput->read($decoded, $length)) && -1 !== ($encodedInput->read($expected, $length))) {
+        while (-1 !== ($decodedLineInput->read($decoded, $length)) && -1 !== ($encodedLineInput->read($expected, $length))) {
 
             $out = new StringOutputStream();
-            $encoder = new CharStringEncodeOutputStream($out);
-            $this->assertEquals($this->output->invoke($encoder, $decoded), $out->size());
+            $stream = new CharStringEncodeOutputStream($out);
+            $this->assertEquals($this->output->invoke($stream, $decoded), $out->size());
             $this->assertEquals(trim($expected), strtoupper(bin2hex($out->__toString())));
         }
     }

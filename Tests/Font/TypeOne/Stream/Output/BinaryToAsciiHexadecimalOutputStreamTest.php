@@ -114,7 +114,7 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $hexFile = $this->base.$hexFile;
 
-        $in = new FileInputStream($binFile, 'rb');
+        $binInput = new FileInputStream($binFile, 'rb');
 
         $out = new StringOutputStream();
 
@@ -124,7 +124,7 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         if ($skip > 0) {
 
-            $in->read($bytes, $skip);
+            $binInput->read($bytes, $skip);
 
             $this->output->invoke($stream, $bytes);
 
@@ -133,7 +133,7 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $stream = new BinaryToAsciiHexadecimalOutputStream($out, $column, true, $width);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $binInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }
@@ -160,13 +160,13 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $hexFile = $this->base.$hexFile;
 
-        $in = new FileInputStream($binFile, 'rb');
+        $binInput = new FileInputStream($binFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new BinaryToAsciiHexadecimalOutputStream($out, 0, false);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $binInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }

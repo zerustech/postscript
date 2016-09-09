@@ -105,24 +105,24 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestEexecBinEncryptWithFile
      */
-    public function testEexecBinEncryptWithFile($binSource, $plainSource, $length)
+    public function testEexecBinEncryptWithFile($binFile, $plainFile, $length)
     {
-        $binSource = $this->base.$binSource;
+        $binFile = $this->base.$binFile;
 
-        $plainSource = $this->base.$plainSource;
+        $plainFile = $this->base.$plainFile;
 
-        $in = new FileInputStream($plainSource, 'rb');
+        $plainInput = new FileInputStream($plainFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new EexecEncryptOutputStream($out);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $plainInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals($out->__toString(), file_get_contents($binSource));
+        $this->assertEquals($out->__toString(), file_get_contents($binFile));
     }
 
     public function getDataForTestEexecBinEncryptWithFile()
@@ -136,24 +136,24 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestEexecHexEncryptWithFile
      */
-    public function testEexecHexEncryptWithFile($hexSource, $plainSource, $length)
+    public function testEexecHexEncryptWithFile($hexFile, $plainFile, $length)
     {
-        $hexSource = $this->base.$hexSource;
+        $hexFile = $this->base.$hexFile;
 
-        $plainSource = $this->base.$plainSource;
+        $plainFile = $this->base.$plainFile;
 
-        $in = new FileInputStream($plainSource, 'rb');
+        $plainInput = new FileInputStream($plainFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new EexecEncryptOutputStream(new BinaryToAsciiHexadecimalOutputStream($out));
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $plainInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals($out->__toString(), file_get_contents($hexSource));
+        $this->assertEquals($out->__toString(), file_get_contents($hexFile));
     }
 
     public function getDataForTestEexecHexEncryptWithFile()

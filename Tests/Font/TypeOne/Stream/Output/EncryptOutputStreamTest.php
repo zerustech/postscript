@@ -131,24 +131,24 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestEexecBinEncryptWithFile
      */
-    public function testEexecBinEncryptWithFile($binSource, $plainSource, $length)
+    public function testEexecBinEncryptWithFile($binFile, $plainFile, $length)
     {
-        $binSource = $this->base.$binSource;
+        $binFile = $this->base.$binFile;
 
-        $plainSource = $this->base.$plainSource;
+        $plainFile = $this->base.$plainFile;
 
-        $in = new FileInputStream($plainSource, 'rb');
+        $plainInput = new FileInputStream($plainFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new EncryptOutputStream($out, 55665);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $plainInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals($out->__toString(), file_get_contents($binSource));
+        $this->assertEquals($out->__toString(), file_get_contents($binFile));
     }
 
     public function getDataForTestEexecBinEncryptWithFile()
@@ -162,24 +162,24 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestEexecHexEncryptWithFile
      */
-    public function testEexecHexEncryptWithFile($hexSource, $plainSource, $length)
+    public function testEexecHexEncryptWithFile($hexFile, $plainFile, $length)
     {
-        $hexSource = $this->base.$hexSource;
+        $hexFile = $this->base.$hexFile;
 
-        $plainSource = $this->base.$plainSource;
+        $plainFile = $this->base.$plainFile;
 
-        $in = new FileInputStream($plainSource, 'rb');
+        $plainInput = new FileInputStream($plainFile, 'rb');
 
         $out = new StringOutputStream();
 
         $stream = new EncryptOutputStream(new BinaryToAsciiHexadecimalOutputStream($out), 55665);
 
-        while (-1 !== $in->read($bytes, $length)) {
+        while (-1 !== $plainInput->read($bytes, $length)) {
 
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals($out->__toString(), file_get_contents($hexSource));
+        $this->assertEquals($out->__toString(), file_get_contents($hexFile));
     }
 
     public function getDataForTestEexecHexEncryptWithFile()
@@ -206,7 +206,7 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
         while (-1 !== ($encryptedLineInput->read($expectedHex, $length)) && -1 !== ($decryptedLineInput->read($decryptedHex, $length))) {
 
             $out = new StringOutputStream();
-            $encryptor = new EncryptOutputStream($out, 4330, "\x00\x00\x00\x00");
+            $stream = new EncryptOutputStream($out, 4330, "\x00\x00\x00\x00");
 
             $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decryptedHex));
             $hex2bin->read($decryptedBin, strlen($decryptedHex) / 2);
@@ -214,7 +214,7 @@ class EncryptOutputStreamTest extends \PHPUnit_Framework_TestCase
             $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expectedHex));
             $hex2bin->read($expectedBin, strlen($expectedHex) / 2);
 
-            $this->assertEquals($this->output->invoke($encryptor, $decryptedBin), $out->size());
+            $this->assertEquals($this->output->invoke($stream, $decryptedBin), $out->size());
             $this->assertEquals($expectedBin, $out->__toString());
         }
     }
