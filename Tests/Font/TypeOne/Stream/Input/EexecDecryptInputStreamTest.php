@@ -90,7 +90,7 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $expectedInput->read($expectedBin, strlen($expected));
 
-        $stream = new EexecDecryptInputStream($encryptedInput); 
+        $stream = new EexecDecryptInputStream($encryptedInput);
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -104,7 +104,7 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ['E9 8D 09 D7 6C E6 99 52 F0', 0, 26, '68 65 6C 6C 6F', 26, 0, 0],
+            ['E9 8D 09 D7 6C E6 99 52 F0', 0, 5, '68 65 6C 6C 6F', 5, 0, 0],
         ];
     }
 
