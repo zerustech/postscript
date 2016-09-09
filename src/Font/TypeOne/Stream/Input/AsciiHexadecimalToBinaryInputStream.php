@@ -41,9 +41,12 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
     /**
      * {@inheritdoc}
      *
-     * This method reads up to ``$length`` bytes from the subordinate input
-     * stream and converts the data from ascii hexadecimal format to binary
-     * format
+     * This method keeps reading bytes from the subordinate input stream and
+     * converting the data from ascii hexadecimal format to binary format, until
+     * ``$length`` binary bytes have been converted, or EOF is reached.
+     *
+     * NOTE: the ``$length`` argument is not the number of bytes read from the
+     * subordinate stream.
      */
     protected function input(&$bytes, $length)
     {
