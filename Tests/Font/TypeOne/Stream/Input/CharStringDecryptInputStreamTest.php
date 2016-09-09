@@ -89,10 +89,9 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
 
-        // $encryptedInput->read($encryptedBin, strlen($encrypted));
         $expectedInput->read($expectedBin, strlen($expected));
 
-        $stream = new CharStringDecryptInputStream($encryptedInput); 
+        $stream = new CharStringDecryptInputStream($encryptedInput);
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -106,7 +105,7 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ["10 BF 31 70 9A A9 E3 3D EE", 0, 26, "68 65 6c 6c 6F", 26, 0, 0]
+            ["10 BF 31 70 9A A9 E3 3D EE", 0, 5, "68 65 6c 6c 6F", 5, 0, 0]
         ];
     }
 
@@ -119,15 +118,19 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $plainFile = $this->base.$plainFile;
 
-        $cipherInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($cipherFile, 'rb')));
+        $cipherLineInput = new LineInputStream(new FileInputStream($cipherFile, 'rb'));
 
-        $plainInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($plainFile, 'rb')));
+        $plainLineInput = new LineInputStream(new FileInputStream($plainFile, 'rb'));
 
-        while (-1 !== ($cipherInput->read($cipherBin, $length)) && -1 !== ($plainInput->read($plainBin, $length))) {
+        while (-1 !== ($cipherLineInput->read($cipherHex, $length)) && -1 !== ($plainLineInput->read($plainHex, $length))) {
 
-            $stream = new CharStringDecryptInputStream(new StringInputStream($cipherBin), $n);
+            $plainInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
 
-            $this->input->invokeArgs($stream, [&$bytes, strlen($cipherBin)]);
+            $plainInput->read($plainBin, strlen($plainHex) / 2);
+
+            $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($cipherHex)), $n);
+
+            $this->input->invokeArgs($stream, [&$bytes, strlen($cipherHex) / 2]);
 
             $this->assertEquals($plainBin, $bytes);
         }
