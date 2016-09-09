@@ -66,29 +66,57 @@ class BinaryToAsciiHexadecimalInputStream extends FilterInputStream
 
     /**
      * {@inheritdoc}
+     */
+    public function available()
+    {
+        return parent::available() * 2;
+    }
+
+    /**
+     * {@inheritdoc}
      *
-     * This method reads up to ``$length`` bytes from the subordinate input
-     * stream and converts the data from binary format to ascii hexadecimal
-     * format.
+     * This method keeps reading bytes from the subordinate input
+     * stream and converting the data from binary format to ascii hexadecimal
+     * format, till ``$length`` hexadecimal bytes have been converted.
+     *
+     * NOTE: the ``$length`` argument is the number of hexadecimal bytes
+     * converted, not the number of bytes read from the subordinate stream.
+     *
+     * Since one binary byte is always converted into two hexadecimal bytes, the
+     * ``$length`` argument should be an even number. If the ``$length``
+     * argument is an odd number, the next lowest even number (``$length + 1``)
+     * will be used.
      */
     protected function input(&$bytes, $length)
     {
+        $remaining = $length = (0 === $length % 2) ? $length : $length + 1;
+
         $bytes = '';
 
-        $count = parent::input($bin, $length);
+        while ($remaining > 0) {
 
-        for ($i = 0; $i < strlen($bin); $i++) {
+            $num = (int)$remaining/2;
 
-            $bytes .= strtoupper(bin2hex($bin[$i]));
+            if (-1 === ($count = parent::input($bin, $num))) {
 
-            $this->column = ($this->column + 1) % $this->width;
+                break;
+            }
 
-            if (0 === $this->column && true === $this->format) {
+            for ($i = 0; $i < strlen($bin); $i++) {
 
-                $bytes .= "\n";
+                $bytes .= strtoupper(bin2hex($bin[$i]));
+
+                $remaining -= 2;
+
+                $this->column = ($this->column + 1) % $this->width;
+
+                if (0 === $this->column && true === $this->format) {
+
+                    $bytes .= "\n";
+                }
             }
         }
 
-        return $count;
+        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
     }
 }

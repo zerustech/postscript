@@ -86,7 +86,7 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
     /**
      * @dataProvider getDataForTestInput
      */
-    public function testInput($column, $format, $width, $bin, $offset, $length, $hex, $count, $skipped, $available)
+    public function testInput($column, $format, $width, $bin, $offset, $length, $expected, $count, $skipped, $available)
     {
         $in = new StringInputStream($bin);
 
@@ -96,7 +96,7 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($hex, $bytes);
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
@@ -104,22 +104,26 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
     public function getDataForTestInput()
     {
         return [
-            [0, false, 4, 'hello', 0, 1, '68', 1, 0, 4],
-            [0, false, 4, 'hello', 0, 5, '68656C6C6F', 5, 0, 0],
-            [0, false, 4, 'hello', 0, 6, '68656C6C6F', 5, 0, 0],
-            [0, false, 4, 'hello', 1, 1, '65', 1, 1, 3],
-            [0, false, 4, 'hello', 4, 1, '6F', 1, 4, 0],
-            [0, false, 4, 'hello', 5, 1, '', -1, 5, 0],
-            [0, false, 4, 'hello', 5, 2, '', -1, 5, 0],
-            [0, true, 4, '0123012301230123', 0, 16, "30313233\n30313233\n30313233\n30313233\n", 16, 0, 0],
-            [0, true, 4, '0123012301230123', 0, 17, "30313233\n30313233\n30313233\n30313233\n", 16, 0, 0],
-            [0, true, 4, '0123012301230123', 0, 18, "30313233\n30313233\n30313233\n30313233\n", 16, 0, 0],
-            [0, true, 4, '0123012301230123', 0, 6, "30313233\n3031", 6, 0, 10],
-            [2, true, 4, '0123012301230123', 0, 6, "3031\n32333031\n", 6, 0, 10],
-            [0, true, 4, '0123012301230123', 2, 14, "3233\n30313233\n30313233\n30313233\n", 14, 2, 0],
-            [1, true, 4, '0123012301230123', 3, 13, "33303132\n33303132\n33303132\n33", 13, 3, 0],
-            [0, true, 4, '0123012301230123', 16, 1, '', -1, 16, 0],
-            [0, true, 4, '0123012301230123', 16, 2, '', -1, 16, 0],
+            [0, false, 4, 'hello', 0, 1, '68', 2, 0, 8],
+            [0, false, 4, 'hello', 0, 2, '68', 2, 0, 8],
+            [0, false, 4, 'hello', 0, 3, '6865', 4, 0, 6],
+            [0, false, 4, 'hello', 0, 10, '68656C6C6F', 10, 0, 0],
+            [0, false, 4, 'hello', 0, 11, '68656C6C6F', 10, 0, 0],
+            [0, false, 4, 'hello', 1, 1, '65', 2, 2, 6],
+            [0, false, 4, 'hello', 2, 1, '65', 2, 2, 6],
+            [0, false, 4, 'hello', 2, 2, '65', 2, 2, 6],
+            [0, false, 4, 'hello', 8, 2, '6F', 2, 8, 0],
+            [0, false, 4, 'hello', 10, 1, '', -1, 10, 0],
+            [0, false, 4, 'hello', 10, 2, '', -1, 10, 0],
+            [0, true, 4, '0123012301230123', 0, 32, "30313233\n30313233\n30313233\n30313233\n", 32, 0, 0],
+            [0, true, 4, '0123012301230123', 0, 33, "30313233\n30313233\n30313233\n30313233\n", 32, 0, 0],
+            [0, true, 4, '0123012301230123', 0, 12, "30313233\n3031", 12, 0, 20],
+            [2, true, 4, '0123012301230123', 0, 12, "3031\n32333031\n", 12, 0, 20],
+            [0, true, 4, '0123012301230123', 4, 28, "3233\n30313233\n30313233\n30313233\n", 28, 4, 0],
+            [1, true, 4, '0123012301230123', 4, 28, "32\n33303132\n33303132\n33303132\n33", 28, 4, 0],
+            [1, true, 4, '0123012301230123', 3, 28, "32\n33303132\n33303132\n33303132\n33", 28, 4, 0],
+            [0, true, 4, '0123012301230123', 32, 2, '', -1, 32, 0],
+            [0, true, 4, '0123012301230123', 32, 1, '', -1, 32, 0],
         ];
     }
 
