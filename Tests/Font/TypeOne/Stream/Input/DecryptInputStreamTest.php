@@ -106,7 +106,7 @@ class DecryptInputStreamTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [4330, 4, "10 BF 31 70 9A A9 E3 3D EE", 0, 5, "68 65 6c 6c 6F", 5, 0, 0],
-            [4330, 4, "10 BF 31 70 9A A9 E3 3D EE", 0, 1, "68", 1, 0, 6],
+            [4330, 4, "10 BF 31 70 9A A9 E3 3D EE", 0, 1, "68", 1, 0, 1],
             [4330, 4, "10 BF 31 70 9A A9 E3 3D EE", 0, 4, "68 65 6c 6c", 4, 0, 1],
             [55665, 4, 'E9 8D 09 D7 6C E6 99 52 F0', 0, 5, '68 65 6C 6C 6F', 5, 0, 0],
         ];
