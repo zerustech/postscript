@@ -47,6 +47,8 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
      *
      * NOTE: the ``$length`` argument is not the number of bytes read from the
      * subordinate stream.
+     *
+     * @return int The number of binary bytes converted, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
     {

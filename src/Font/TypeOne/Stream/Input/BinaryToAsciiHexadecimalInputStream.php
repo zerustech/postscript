@@ -86,6 +86,8 @@ class BinaryToAsciiHexadecimalInputStream extends FilterInputStream
      * ``$length`` argument should be an even number. If the ``$length``
      * argument is an odd number, the next lowest even number (``$length + 1``)
      * will be used.
+     *
+     * @return int The number of hexadecimal bytes converted, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
     {
