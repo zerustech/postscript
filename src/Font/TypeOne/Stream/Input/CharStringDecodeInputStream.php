@@ -90,6 +90,8 @@ class CharStringDecodeInputStream extends FilterInputStream
      * decoding the data into ``$bytes``, untill ``$length`` bytes have been
      * decoded.
      *
+     * NOTE: spaces are not counted in the return value of this method.
+     *
      * @return int The number of bytes decoded, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
@@ -111,7 +113,7 @@ class CharStringDecodeInputStream extends FilterInputStream
 
                     $bytes .= $decoded.' ';
 
-                    $remaining -= (strlen($decoded) + 1);
+                    $remaining -= strlen($decoded);
                 }
             }
         }
