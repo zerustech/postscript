@@ -98,7 +98,7 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestInput
      */
-    public function testInput($decoded, $encoded, $offset, $length, $count, $skipped, $available)
+    public function testInput($encoded, $offset, $length, $expected, $count, $skipped, $available)
     {
         $in = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded));
 
@@ -108,7 +108,7 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($decoded, trim($bytes));
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
@@ -116,19 +116,18 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ['-107 -100 0 100 107', '20 27 8B EF F6', 0, 14, 14, 0, 0],
-            ['108 500 1131', 'F700 F888 FAFF', 0, 14, 14, 0, 0],
-            ['-1131 -500 -108', 'FEFF FC88 FB00', 0, 14, 14, 0, 0],
-            ['-40000 -32001 -32000 -1132 1132 32000 32001 40000', 'FFFFFF63C0 FFFFFF82FF FFFFFF8300 FFFFFFFB94 FF0000046C FF00007D00 FF00007D01 FF00009C40', 0, 87, 87, 0, 0],
-            ['hstem vstem vmoveto rlineto hlineto vlineto rrcurveto closepath callsubr return hsbw endchar rmoveto hmoveto vhcurveto hvcurveto dotsection vstem3 hstem3 seac sbw div callothersubr pop setcurrentpoint',
-             '01 03 04 05 06 07 08 09 0A 0B 0D 0E 15 16 1E 1F 0C00 0C01 0C02 0C06 0C07 0C0C 0C10 0C11 0C21', 0, 92, 92, 0, 0],
-            ['-107 -100 0 100 107', '20 27 8B EF F6', 1, 13, 14, 0, 0],
-            ['-100 0 100 107', '20 27 8B EF F6', 2, 12, 12, 2, 0],
-            ['-100 0 100 107', '20 27 8B EF F6', 3, 11, 11, 3, 0],
-            ['-100 0 100 107', '20 27 8B EF F6', 4, 10, 11, 3, 0],
-            ['0 100 107', '20 27 8B EF F6', 5, 9, 9, 5, 0],
-            ['', '20 27 8B EF F6', 14, 1, -1, 14, 0],
-            ['-107 -100 0 100 107', '20 27 8B EF F6', 0, 15, 14, 0, 0],
+            ['20 27 8B EF F6', 0, 20, '-107 -100 0 100 107 ', 20, 0, 0],
+            ['F700 F888 FAFF', 0, 13, '108 500 1131 ', 13, 0, 0],
+            ['FEFF FC88 FB00', 0, 16, '-1131 -500 -108 ', 16, 0, 0],
+            ['FFFFFF63C0 FFFFFF82FF FFFFFF8300 FFFFFFFB94 FF0000046C FF00007D00 FF00007D01 FF00009C40', 0, 50, '-40000 -32001 -32000 -1132 1132 32000 32001 40000 ', 50, 0, 0],
+            ['01 03 04 05 06 07 08 09 0A 0B 0D 0E 15 16 1E 1F 0C00 0C01 0C02 0C06 0C07 0C0C 0C10 0C11 0C21', 0, 201,
+             'hstem vstem vmoveto rlineto hlineto vlineto rrcurveto closepath callsubr return hsbw endchar rmoveto hmoveto vhcurveto hvcurveto dotsection vstem3 hstem3 seac sbw div callothersubr pop setcurrentpoint ', 201, 0, 0],
+            ['20 27 8B EF F6', 0, 1, '-107 ', 5, 0, 1],
+            ['20 27 8B EF F6', 0, 5, '-107 ', 5, 0, 1],
+            ['20 27 8B EF F6', 0, 6, '-107 -100 ', 10, 0, 1],
+            ['20 27 8B EF F6', 1, 15, '-100 0 100 107 ', 15, 5, 0],
+            ['20 27 8B EF F6', 1, 16, '-100 0 100 107 ', 15, 5, 0],
+            ['20 27 8B EF F6', 20, 1, '', -1, 20, 0],
         ];
     }
 
@@ -141,15 +140,20 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $encodedFile = $this->base.$encodedFile;
 
-        $encodedInput = new AsciiHexadecimalToBinaryInputStream(new LineInputStream(new FileInputStream($encodedFile, 'rb')));
+        $encodedInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
 
         $decodedInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
 
         while (-1 !== ($encodedInput->read($encoded, $length)) && -1 !== ($decodedInput->read($expected, $length))) {
 
-            $decoder = new CharStringDecodeInputStream(new StringInputStream($encoded));
+            $decoder = new CharStringDecodeInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded)));
 
-            $this->assertEquals(strlen($encoded), $this->input->invokeArgs($decoder, [&$decoded, strlen($encoded)]));
+            $decoded = '';
+
+            while (-1 !== $this->input->invokeArgs($decoder, [&$bytes, $length])) {
+
+                $decoded .= $bytes;
+            }
 
             $this->assertEquals(trim($expected), trim($decoded));
         }
@@ -162,5 +166,4 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
             ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 16],
         ];
     }
-
 }

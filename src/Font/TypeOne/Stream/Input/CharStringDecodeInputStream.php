@@ -235,23 +235,48 @@ class CharStringDecodeInputStream extends FilterInputStream
     /**
      * {@inheritdoc}
      *
-     * This methods reads up to ``$length`` bytes from the subordinate stream
-     * and decodes the bytes into ``$bytes``.
+     * This methods keeps reading bytes from the subordinate stream and
+     * decoding the data into ``$bytes``, untill ``$length`` bytes have been
+     * decoded.
+     *
+     * @return int The number of bytes decoded, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
     {
+        $remaining = $length;
+
         $bytes = '';
 
-        $count = parent::input($encoded, $length);
+        while ($remaining > 0) {
 
-        for ($i = 0; $i < strlen($encoded); $i++) {
+            if (-1 === $count = parent::input($encoded, 1)) {
 
-            if (null !== ($decoded = $this->decode($encoded[$i]))) {
+                break;
+            }
 
-                $bytes .= $decoded.' ';
+            for ($i = 0; $i < strlen($encoded); $i++) {
+
+                if (null !== ($decoded = $this->decode($encoded[$i]))) {
+
+                    $bytes .= $decoded.' ';
+
+                    $remaining -= (strlen($decoded) + 1);
+                }
             }
         }
 
-        return $count;
+        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Because it's impossible to predict the length of decoded bytes, this
+     * method returns 1 if the subordinate stream is still available, or 0
+     * otherwise.
+     */
+    public function available()
+    {
+        return parent::available() > 0 ? 1 : 0;
     }
 }
