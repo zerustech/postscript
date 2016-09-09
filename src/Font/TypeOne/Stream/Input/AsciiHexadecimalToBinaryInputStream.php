@@ -84,6 +84,12 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
 
     /**
      * {@inheritdoc}
+     *
+     * Because space characters will be ignored and it's impossible to predict
+     * how many space characters in the subordinate stream, this method only
+     * returns an estimate of the available bytes in current stream with the
+     * following formula:
+     *     (int)round((count($this->buffer) + parent::available()) / 2);
      */
     public function available()
     {
