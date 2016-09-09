@@ -75,8 +75,8 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
     public function getDataForTestInput()
     {
         return [
-            ['68656C6C6F', 0, 1, 'h', 1, 0, 4],
-            ['68656C6C6F', 0, 2, 'he', 2, 0, 3],
+            ['68656C6C6F', 0, 1, 'h', 1, 0, 1],
+            ['68656C6C6F', 0, 2, 'he', 2, 0, 1],
             ['68656C6C6F', 0, 5, 'hello', 5, 0, 0],
             ['68656C6C6F', 0, 6, 'hello', 5, 0, 0],
             ['68656C6C6F', 4, 1, 'o', 1, 4, 0],
@@ -84,10 +84,10 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
             ['68656C6C6F', 5, 1, '', -1, 5, 0],
             ['68656C6C6F', 5, 2, '', -1, 5, 0],
             ["\n\t\r 68", 0, 1, 'h', 1, 0, 0],
-            ["\n\t\r 68\n\t\r ", 0, 1, 'h', 1, 0, 2],
+            ["\n\t\r 68\n\t\r ", 0, 1, 'h', 1, 0, 1],
             ["\n\t\r 68\n\t\r ", 0, 2, 'h', 1, 0, 0],
             ["\n\t\r 68\n\t\r ", 1, 1, '', -1, 1, 0],
-            ["\n\t\r 6\n\t\r 8\n\t\r ", 0, 1, 'h', 1, 0, 2],
+            ["\n\t\r 6\n\t\r 8\n\t\r ", 0, 1, 'h', 1, 0, 1],
             ["\n\t\r 6\n\t\r 8\n\t\r ", 0, 2, 'h', 1, 0, 0],
             ["\n\t\r 6\n\t\r 8\n\t\r ", 1, 1, '', -1, 1, 0],
         ];
