@@ -71,12 +71,7 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
 
         $bytes = '';
 
-        while ($remaining > 0) {
-
-            if (-1 === $count = parent::input($hex, 2 * $remaining)) {
-
-                break;
-            }
+        while ($remaining > 0 && -1 !== parent::input($hex, 2 * $remaining)) {
 
             for ($i = 0; $i < strlen($hex); $i++) {
 
@@ -96,6 +91,6 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
             }
         }
 
-        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
+        return $remaining === $length ? -1 : $length - $remaining;
     }
 }
