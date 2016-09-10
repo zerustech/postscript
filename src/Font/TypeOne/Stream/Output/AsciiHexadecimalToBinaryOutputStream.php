@@ -52,11 +52,6 @@ class AsciiHexadecimalToBinaryOutputStream extends FilterOutputStream
 
         for ($i = 0; $i < strlen($bytes); $i++) {
 
-            if (1 === preg_match("/^[ \t\r\n]$/", $bytes[$i])) {
-
-                continue;
-            }
-
             $this->buffer[] = $bytes[$i];
 
             if (2 === count($this->buffer)) {
