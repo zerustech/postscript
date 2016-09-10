@@ -15,7 +15,7 @@ use ZerusTech\Component\IO\Stream\Output\FilterOutputStream;
 use ZerusTech\Component\IO\Stream\Output\OutputStreamInterface;
 
 /**
- * This class removed space characters, "\n", "\r", "\t" and " " from the
+ * This class removes space characters, "\n", "\r", "\t" and " " from the
  * provided hexadecimal bytes and writes the bytes to the subordinate output
  * stream.
  *
