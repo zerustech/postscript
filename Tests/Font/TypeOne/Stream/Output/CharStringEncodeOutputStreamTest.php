@@ -94,12 +94,12 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($decoded, $encoded, $count)
+    public function testOutput($decoded, $expected, $count)
     {
         $out = new StringOutputStream();
         $stream = new CharStringEncodeOutputStream($out);
         $this->assertEquals($count, $this->output->invoke($stream, $decoded));
-        $this->assertEquals(strtoupper(bin2hex($out->__toString())), str_replace(' ', '', trim($encoded)));
+        $this->assertEquals(str_replace(' ', '', trim($expected)), strtoupper(bin2hex($out->__toString())));
     }
 
     public function getDataForTestOutput()
@@ -117,17 +117,17 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestOutputWithFile
      */
-    public function testOutputWithFile($decodedFile, $encodedFile, $length)
+    public function testOutputWithFile($decodedFile, $expectedFile, $length)
     {
         $decodedFile = $this->base.$decodedFile;
 
-        $encodedFile = $this->base.$encodedFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $decodedLineInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
 
-        $encodedLineInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
+        $expectedLineInput = new LineInputStream(new FileInputStream($expectedFile, 'rb'));
 
-        while (-1 !== ($decodedLineInput->read($decoded, $length)) && -1 !== ($encodedLineInput->read($expected, $length))) {
+        while (null !== ($decoded = $decodedLineInput->readLine()) && null !== ($expected = $expectedLineInput->readLine())) {
 
             $out = new StringOutputStream();
             $stream = new CharStringEncodeOutputStream($out);
