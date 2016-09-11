@@ -67,7 +67,7 @@ class AsciiHexadecimalWashOutputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestOutput()
     {
         return [
-            ["68656C6C6F\n","68656C6C6F", 10],
+            ["6\n8\t6\r5 6C6C6F\n","68656C6C6F", 10],
             ["68656C6C6F\n68656C", "68656C6C6F68656C", 16],
             ["68656C6C6F\n68656C6C6F\n68656C", "68656C6C6F68656C6C6F68656C", 26],
             ["68656C6C\n6F68656C6C\n6F68656C", "68656C6C6F68656C6C6F68656C", 26],
