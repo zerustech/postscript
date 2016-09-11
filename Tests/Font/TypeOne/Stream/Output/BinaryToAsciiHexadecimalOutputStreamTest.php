@@ -76,11 +76,11 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
     /**
      * @dataProvider getDataForTestOutputWithFile
      */
-    public function testOutputWithFile($binFile, $hexFile, $length, $skip, $width)
+    public function testOutputWithFile($binFile, $expectedFile, $length, $skip, $width)
     {
-        $binFile = $this->base.$binFile;
+        $expectedFile = $this->base.$expectedFile;
 
-        $hexFile = $this->base.$hexFile;
+        $binFile = $this->base.$binFile;
 
         $binInput = new FileInputStream($binFile, 'rb');
 
@@ -106,7 +106,7 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals(trim(file_get_contents($hexFile)), $out->__toString());
+        $this->assertEquals(trim(file_get_contents($expectedFile)), $out->__toString());
     }
 
     public function getDataForTestOutputWithFile()
