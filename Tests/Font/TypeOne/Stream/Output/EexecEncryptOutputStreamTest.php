@@ -81,33 +81,28 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($decrypted, $expected, $count)
+    public function testOutput($decrypted, $expected, $seeds, $count)
     {
-        $decryptedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($decrypted));
-        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
-        $decryptedInput->read($decryptedBin, strlen($decrypted));
-        $expectedInput->read($expectedBin, strlen($expected));
-
         $out = new StringOutputStream();
-        $stream = new EexecEncryptOutputStream($out);
+        $stream = new EexecEncryptOutputStream($out, $seeds);
 
-        $this->assertEquals($count, $this->output->invoke($stream, $decryptedBin));
-        $this->assertEquals($expectedBin, $out->__toString());
+        $this->assertEquals($count, $this->output->invoke($stream, $decrypted));
+        $this->assertEquals($expected, $out->__toString());
     }
 
     public function getDataForTestOutput()
     {
         return [
-            ['68 65 6C 6C 6F', 'E9 8D 09 D7 6C E6 99 52 F0', 9],
+            ['hello', "\xe9\x8d\x09\xd7\x6c\xe6\x99\x52\xf0", '0000', 9],
         ];
     }
 
     /**
      * @dataProvider getDataForTestEexecBinEncryptWithFile
      */
-    public function testEexecBinEncryptWithFile($binFile, $plainFile, $length)
+    public function testEexecBinEncryptWithFile($plainFile, $expectedFile, $length)
     {
-        $binFile = $this->base.$binFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $plainFile = $this->base.$plainFile;
 
@@ -122,45 +117,14 @@ class EexecDecryptOutputStreamTest extends \PHPUnit_Framework_TestCase
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals($out->__toString(), file_get_contents($binFile));
+        $this->assertEquals(file_get_contents($expectedFile), $out->__toString());
     }
 
     public function getDataForTestEexecBinEncryptWithFile()
     {
         return [
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 1],
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 32],
-        ];
-    }
-
-    /**
-     * @dataProvider getDataForTestEexecHexEncryptWithFile
-     */
-    public function testEexecHexEncryptWithFile($hexFile, $plainFile, $length)
-    {
-        $hexFile = $this->base.$hexFile;
-
-        $plainFile = $this->base.$plainFile;
-
-        $plainInput = new FileInputStream($plainFile, 'rb');
-
-        $out = new StringOutputStream();
-
-        $stream = new EexecEncryptOutputStream(new BinaryToAsciiHexadecimalOutputStream($out));
-
-        while (-1 !== $plainInput->read($bytes, $length)) {
-
-            $this->output->invoke($stream, $bytes);
-        }
-
-        $this->assertEquals($out->__toString(), file_get_contents($hexFile));
-    }
-
-    public function getDataForTestEexecHexEncryptWithFile()
-    {
-        return [
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 1],
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 32],
+            ['eexec-block-decrypted-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 1],
+            ['eexec-block-decrypted-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 32],
         ];
     }
 }
