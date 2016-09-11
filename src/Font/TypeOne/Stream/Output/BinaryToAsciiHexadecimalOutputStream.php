@@ -20,7 +20,7 @@ use ZerusTech\Component\IO\Stream\Output\OutputStreamInterface;
  *
  * In binary format, each byte represents a binary byte. In ascii hexadecimal
  * format, each binary byte is presented by a pair of hexadecimal characters
- * (0-9, a-f, or A-F). White-space characters are ignored.
+ * (0-9, a-f, or A-F).
  *
  * For example:
  *
@@ -30,49 +30,18 @@ use ZerusTech\Component\IO\Stream\Output\OutputStreamInterface;
  * While in ascii hexadecimal format, it consists of six bytes:
  * '616263'
  *
- * When converting data into ascii hexadecimal format, the "\n" will be inserted
- * to get fixed-width lines, each pair of hexadecimal bytes represents a column
- * and there are up to 32 columns in a line, by default.
- *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
 class BinaryToAsciiHexadecimalOutputStream extends FilterOutputStream
 {
-
     /**
-     * @var int The column index of the next hexadecimal pair (0 - 31).
-     */
-    private $column;
-
-    /**
-     * @var bool This boolean indicates whether to format the hexadecimal bytes
-     * as fixed-width sequences, true by default.
-     */
-    private $format;
-
-    /**
-     * @var int The number of columns (hexadecimal pairs) in each line.
-     */
-    private $width = 32;
-
-    /**
-     * This method creates a new binary to ascii hexadecimal input stream.
+     * This method creates a new binary to ascii hexadecimal output stream.
      *
      * @param OutputStreamInterface $out The subordinate output stream.
-     * @param int $column The initial column index.
-     * @param bool $format A boolean indicates whether to format the hexadecimal
-     * string to fixed-width lines.
-     * @param int $width The maximum number of columns in a line.
      */
-    public function __construct(OutputStreamInterface $out, $column = 0, $format = true, $width = 32)
+    public function __construct(OutputStreamInterface $out)
     {
         parent::__construct($out);
-
-        $this->column = $column;
-
-        $this->format = $format;
-
-        $this->width = $width;
     }
 
     /**
@@ -83,20 +52,6 @@ class BinaryToAsciiHexadecimalOutputStream extends FilterOutputStream
      */
     protected function output($bytes)
     {
-        $hex = '';
-
-        for ($i = 0; $i < strlen($bytes); $i++) {
-
-            $hex .= strtoupper((bin2hex($bytes[$i])));
-
-            $this->column = ($this->column + 1) % $this->width;
-
-            if (0 === $this->column && true === $this->format) {
-
-                $hex .= "\n";
-            }
-        }
-
-        return parent::output($hex);
+        return parent::output(strtoupper(bin2hex($bytes)));
     }
 }

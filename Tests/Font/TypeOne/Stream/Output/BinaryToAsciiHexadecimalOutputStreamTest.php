@@ -34,23 +34,11 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
         $this->out = $this->ref->getProperty('out');
         $this->out->setAccessible(true);
 
-        $this->column = $this->ref->getProperty('column');
-        $this->column->setAccessible(true);
-
-        $this->format = $this->ref->getProperty('format');
-        $this->format->setAccessible(true);
-
-        $this->width = $this->ref->getProperty('width');
-        $this->width->setAccessible(true);
-
         $this->base = __DIR__.'/../../../../Fixtures/Font/TypeOne/';
     }
 
     public function tearDown()
     {
-        $this->width = null;
-        $this->format = null;
-        $this->column = null;
         $this->out = null;
         $this->output = null;
         $this->ref = null;
@@ -58,35 +46,21 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
         $this->base = null;
     }
 
-    /**
-     * @dataProvider getDataForTestConstructor
-     */
-    public function testConstructor($column, $format, $width)
+    public function testConstructor()
     {
         $out = new StringOutputStream();
-        $stream = new BinaryToAsciiHexadecimalOutputStream($out, $column, $format, $width);
+        $stream = new BinaryToAsciiHexadecimalOutputStream($out);
 
         $this->assertSame($out, $this->out->getValue($stream));
-        $this->assertEquals($column, $this->column->getValue($stream));
-        $this->assertEquals($format, $this->format->getValue($stream));
-        $this->assertEquals($width, $this->width->getValue($stream));
-    }
-
-    public function getDataForTestConstructor()
-    {
-        return [
-            [0, true, 32],
-            [1, false, 16],
-        ];
     }
 
     /**
      * @dataProvider getDataForTestOutput
      */
-    public function testOutput($bin, $expected, $count, $column, $width)
+    public function testOutput($bin, $expected, $count)
     {
         $out = new StringOutputStream();
-        $stream = new BinaryToAsciiHexadecimalOutputStream($out, $column, true, $width);
+        $stream = new BinaryToAsciiHexadecimalOutputStream($out);
         $this->assertEquals($count, $this->output->invoke($stream, $bin));
         $this->assertEquals($expected, $out->__toString());
     }
@@ -94,14 +68,8 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
     public function getDataForTestOutput()
     {
         return [
-            ["hello", "68656C6C6F\n", 11, 0, 5],
-            ["hellohel", "68656C6C6F\n68656C", 17, 0, 5],
-            ["hellohellohel", "68656C6C6F\n68656C6C6F\n68656C", 28, 0, 5],
-            ["hellohellohel", "68656C6C\n6F68656C6C\n6F68656C", 28, 1, 5],
-            ["hellohellohel", "68656C\n6C6F68656C\n6C6F68656C\n", 29, 2, 5],
-            ["hellohellohel", "6865\n6C6C6F6865\n6C6C6F6865\n6C", 29, 3, 5],
-            ["hellohellohel", "68\n656C6C6F68\n656C6C6F68\n656C", 29, 4, 5],
-            ["hellohellohel", "68656C6C6F\n68656C6C6F\n68656C", 28, 5, 5],
+            ["hello", "68656C6C6F", 10],
+            ["hellohel", "68656C6C6F68656C", 16],
         ];
     }
 
@@ -138,49 +106,16 @@ class BinaryToAsciiHexadecimalOutputStreamTest extends \PHPUnit_Framework_TestCa
             $this->output->invoke($stream, $bytes);
         }
 
-        $this->assertEquals(file_get_contents($hexFile), $out->__toString());
+        $this->assertEquals(trim(file_get_contents($hexFile)), $out->__toString());
     }
 
     public function getDataForTestOutputWithFile()
     {
         return [
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 1, 0, 32],
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 1, 16, 32],
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 32, 0, 32],
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-001.txt', 32, 16, 32],
-        ];
-    }
-
-    /**
-     * @dataProvider getDataForTestOutputWithoutFormat
-     */
-    public function testOutputWithoutFormat($binFile, $hexFile, $length)
-    {
-        $binFile = $this->base.$binFile;
-
-        $hexFile = $this->base.$hexFile;
-
-        $binInput = new FileInputStream($binFile, 'rb');
-
-        $out = new StringOutputStream();
-
-        $stream = new BinaryToAsciiHexadecimalOutputStream($out, 0, false);
-
-        while (-1 !== $binInput->read($bytes, $length)) {
-
-            $this->output->invoke($stream, $bytes);
-        }
-
-        $out->write("\n");
-
-        $this->assertEquals(file_get_contents($hexFile), $out->__toString());
-    }
-
-    public function getDataForTestOutputWithoutFormat()
-    {
-        return [
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 1],
-            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 16],
+            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 1, 0, 32],
+            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 1, 16, 32],
+            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 32, 0, 32],
+            ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-encrypted-as-hex-without-format-001.txt', 32, 16, 32],
         ];
     }
 }
