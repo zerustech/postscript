@@ -14,6 +14,7 @@ namespace ZerusTech\Component\Postscript\Tests\Font\TypeOne\Stream\Input;
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\AsciiHexadecimalToBinaryInputStream;
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Exception;
 
@@ -51,7 +52,7 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
     {
         $in = new StringInputStream('hello');
         $stream = new AsciiHexadecimalToBinaryInputStream($in);
-        $this->assertEquals([], $this->buffer->getValue($stream));
+        $this->assertEquals('', $this->buffer->getValue($stream));
     }
 
     /**
@@ -75,23 +76,45 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
     public function getDataForTestInput()
     {
         return [
-            ['68656C6C6F', 0, 1, 'h', 1, 0, 1],
-            ['68656C6C6F', 0, 2, 'he', 2, 0, 1],
+            ['68656C6C6F', 0, 1, 'h', 1, 0, 4],
+            ['68656C6C6F', 0, 2, 'he', 2, 0, 3],
             ['68656C6C6F', 0, 5, 'hello', 5, 0, 0],
             ['68656C6C6F', 0, 6, 'hello', 5, 0, 0],
             ['68656C6C6F', 4, 1, 'o', 1, 4, 0],
             ['68656C6C6F', 4, 2, 'o', 1, 4, 0],
             ['68656C6C6F', 5, 1, '', -1, 5, 0],
             ['68656C6C6F', 5, 2, '', -1, 5, 0],
-            ["\n\t\r 68", 0, 1, 'h', 1, 0, 0],
-            ["\n\t\r 68\n\t\r ", 0, 1, 'h', 1, 0, 1],
-            ["\n\t\r 68\n\t\r ", 0, 2, 'h', 1, 0, 0],
-            ["\n\t\r 68\n\t\r ", 1, 1, '', -1, 1, 0],
-            ["\n\t\r 6\n\t\r 8\n\t\r ", 0, 1, 'h', 1, 0, 1],
-            ["\n\t\r 6\n\t\r 8\n\t\r ", 0, 2, 'h', 1, 0, 0],
-            ["\n\t\r 6\n\t\r 8\n\t\r ", 1, 1, '', -1, 1, 0],
         ];
     }
+
+    /**
+     * @dataProvider getDataForTestInputWithException
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessageRegex /.* is not a valid hexadecimal string./
+     */
+    public function testInputWithException($hex, $length)
+    {
+        $in = new StringInputStream($hex);
+
+        $stream = new AsciiHexadecimalToBinaryInputStream($in);
+
+        $this->input->invokeArgs($stream, [&$bytes, $length]);
+    }
+
+    public function getDataForTestInputWithException()
+    {
+        return [
+            ["68656C6C6F\n", 6],
+            ["68656C6C6F\t", 6],
+            ["68656C6C6F\r", 6],
+            ["68656C6C6F ", 6],
+            ["68656C\n6C6F", 6],
+            ["68656C\r6C6F", 6],
+            ["68656C\t6C6F", 6],
+            ["68656C 6C6F", 6],
+        ];
+    }
+
 
     /**
      * @dataProvider getDataForTestInputWithFile
@@ -102,7 +125,7 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
 
         $binFile = $this->base.$binFile;
 
-        $in = new FileInputStream($hexFile, 'rb');
+        $in = new WashInputStream(new FileInputStream($hexFile, 'rb'));
 
         $stream = new AsciiHexadecimalToBinaryInputStream($in);
 
@@ -119,9 +142,9 @@ class AsciiHexadecimalToBinaryInputStreamTest extends \PHPUnit_Framework_TestCas
     public function getDataForTestInputWithFile()
     {
         return [
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 1],
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 2],
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 32],
+            ['eexec-block-encrypted-as-hex-without-format-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 1],
+            ['eexec-block-encrypted-as-hex-without-format-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 2],
+            ['eexec-block-encrypted-as-hex-without-format-001.txt', 'eexec-block-encrypted-as-bin-001.txt', 32],
         ];
     }
 }

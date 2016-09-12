@@ -23,10 +23,10 @@ use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
 class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
 {
     /**
-     * @var array The internal buffer that stores hexadecimal byte that has not
+     * @var string The internal buffer that stores hexadecimal byte that has not
      * been paired.
      */
-    private $buffer = [];
+    private $buffer = '';
 
     /**
      * This method creates a new ``ascii hexadecimal to binary`` input stream.
@@ -35,22 +35,15 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
     {
         parent::__construct($input);
 
-        $this->buffer = [];
+        $this->buffer = '';
     }
 
     /**
      * {@inheritdoc}
-     *
-     * Because it's impossible to predict how many space characters in the
-     * subordinate stream, this method returns 1 if the subordinate stream is
-     * still available, or 0 otherwise.
-     *
-     * @return int 1 if the subordinate stream is still available, or 0
-     * otherwise.
      */
     public function available()
     {
-        return parent::available() > 0 ? 1 : 0;
+        return (int)((strlen($this->buffer) + parent::available()) / 2);
     }
 
     /**
@@ -60,10 +53,10 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
      * converting the data from ascii hexadecimal format to binary format, until
      * ``$length`` binary bytes have been converted, or EOF is reached.
      *
-     * NOTE: the ``$length`` argument is not the number of bytes read from the
-     * subordinate stream.
-     *
      * @return int The number of binary bytes converted, or -1 if EOF.
+     *
+     * @throw \RuntimeException If the bytes read from subordinate is not valid
+     * hexadecimal string.
      */
     protected function input(&$bytes, $length)
     {
@@ -73,21 +66,24 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
 
         while ($remaining > 0 && -1 !== parent::input($hex, 2 * $remaining)) {
 
-            for ($i = 0; $i < strlen($hex); $i++) {
+            if (1 ===  preg_match('/[^0-9a-fA-F]/', $hex)) {
 
-                if (1 === preg_match("/^[ \t\r\n]$/", $hex[$i])) {
+                throw new \RuntimeException(sprintf("%s is not a valid hexadecimal string.", $hex));
+            }
 
-                    continue;
-                }
+            $this->buffer .= $hex;
 
-                $this->buffer[] = $hex[$i];
+            $len = 0 === strlen($this->buffer) % 2 ? strlen($this->buffer) : strlen($this->buffer) - 1;
 
-                if (2 === count($this->buffer)) {
+            if ($len > 0) {
 
-                    $bytes .= chr(hexdec(array_shift($this->buffer).array_shift($this->buffer)));
+                $bin = hex2bin(substr($this->buffer, 0, $len));
 
-                    $remaining--;
-                }
+                $bytes .= $bin;
+
+                $this->buffer = substr($this->buffer, $len);
+
+                $remaining -= strlen($bin);
             }
         }
 
