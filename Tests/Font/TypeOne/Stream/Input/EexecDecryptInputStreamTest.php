@@ -15,6 +15,7 @@ use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\EexecDecryptInputSt
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\DecryptInputStream;
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\AsciiHexadecimalToBinaryInputStream;
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
@@ -84,17 +85,13 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($encrypted, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
-
-        $expectedInput->read($expectedBin, strlen($expected));
-
-        $stream = new EexecDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted)));
+        $stream = new EexecDecryptInputStream(new StringInputStream($encrypted));
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($expectedBin, $bytes);
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
@@ -102,19 +99,18 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ['E9 8D 09 D7 6C E6 99 52 F0', 0, 5, '68 65 6C 6C 6F', 5, 0, 0],
+            ["\xe9\x8d\x09\xd7\x6c\xe6\x99\x52\xf0", 0, 5, 'hello', 5, 0, 0],
         ];
     }
-
 
     /**
      * @dataProvider getDataForTestInputWithBinFile
      */
-    public function testInputWithBinFile($binFile, $plainFile, $length)
+    public function testInputWithBinFile($binFile, $expectedFile, $length)
     {
         $binFile = $this->base.$binFile;
 
-        $plainFile = $this->base.$plainFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $stream = new EexecDecryptInputStream(new FileInputStream($binFile, 'rb'));
 
@@ -125,7 +121,7 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
             $output->write($bytes);
         }
 
-        $this->assertEquals(file_get_contents($plainFile), $output->__toString());
+        $this->assertEquals(file_get_contents($expectedFile), $output->__toString());
     }
 
     public function getDataForTestInputWithBinFile()
@@ -134,36 +130,6 @@ class EexecDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 1],
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 2],
             ['eexec-block-encrypted-as-bin-001.txt', 'eexec-block-decrypted-001.txt', 32],
-        ];
-    }
-
-    /**
-     * @dataProvider getDataForTestInputWithHexFile
-     */
-    public function testInputWithHexFile($hexFile, $plainFile, $length)
-    {
-        $hexFile = $this->base.$hexFile;
-
-        $plainFile = $this->base.$plainFile;
-
-        $stream = new EexecDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new FileInputStream($hexFile, 'rb')));
-
-        $output = new StringOutputStream();
-
-        while (-1 !== ($this->input->invokeArgs($stream, [&$bytes, $length]))) {
-
-            $output->write($bytes);
-        }
-
-        $this->assertEquals(file_get_contents($plainFile), $output->__toString());
-    }
-
-    public function getDataForTestInputWithHexFile()
-    {
-        return [
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 1],
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 2],
-            ['eexec-block-encrypted-as-hex-001.txt', 'eexec-block-decrypted-001.txt', 32],
         ];
     }
 }
