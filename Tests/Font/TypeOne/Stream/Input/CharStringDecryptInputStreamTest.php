@@ -17,6 +17,7 @@ use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Output\AsciiHexadecimalTo
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Stream\Input\LineInputStream;
 
@@ -85,17 +86,13 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($encrypted, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $expectedInput = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($expected));
-
-        $expectedInput->read($expectedBin, strlen($expected));
-
-        $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encrypted)));
+        $stream = new CharStringDecryptInputStream(new StringInputStream($encrypted));
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($expectedBin, $bytes);
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
@@ -103,34 +100,30 @@ class CharStringDecryptInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ["10 BF 31 70 9A A9 E3 3D EE", 0, 5, "68 65 6c 6c 6F", 5, 0, 0]
+            ["\x10\xbf\x31\x70\x9a\xa9\xe3\x3d\xee", 0, 5, "hello", 5, 0, 0]
         ];
     }
 
     /**
      * @dataProvider getDataForTestInputWithFile
      */
-    public function testInputWithFile($cipherFile, $plainFile, $n, $length)
+    public function testInputWithFile($cipherFile, $expectedFile, $n, $length)
     {
         $cipherFile = $this->base.$cipherFile;
 
-        $plainFile = $this->base.$plainFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $cipherLineInput = new LineInputStream(new FileInputStream($cipherFile, 'rb'));
 
-        $plainLineInput = new LineInputStream(new FileInputStream($plainFile, 'rb'));
+        $expectedLineInput = new LineInputStream(new FileInputStream($expectedFile, 'rb'));
 
-        while (-1 !== ($cipherLineInput->read($cipherHex, $length)) && -1 !== ($plainLineInput->read($plainHex, $length))) {
+        while (null !== ($cipherHex = $cipherLineInput->readLine()) && null !== ($expectedHex = $expectedLineInput->readLine())) {
 
-            $hex2bin = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($plainHex));
-
-            $hex2bin->read($plainBin, strlen($plainHex) / 2);
-
-            $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($cipherHex)), $n);
+            $stream = new CharStringDecryptInputStream(new AsciiHexadecimalToBinaryInputStream(new WashInputStream(new StringInputStream($cipherHex))), $n);
 
             $this->input->invokeArgs($stream, [&$bytes, strlen($cipherHex) / 2]);
 
-            $this->assertEquals($plainBin, $bytes);
+            $this->assertEquals(hex2bin(trim($expectedHex)), $bytes);
         }
     }
 
