@@ -17,6 +17,7 @@ use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
 use ZerusTech\Component\IO\Stream\Input\LineInputStream;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Stream\Output\FileOutputStream;
 
@@ -100,7 +101,7 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($encoded, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $in = new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded));
+        $in = new AsciiHexadecimalToBinaryInputStream(new WashInputStream(new StringInputStream($encoded)));
 
         $stream = new CharStringDecodeInputStream($in);
 
@@ -108,7 +109,7 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals($count, $this->input->invokeArgs($stream, [&$bytes, $length]));
 
-        $this->assertEquals($expected, trim($bytes));
+        $this->assertEquals($expected, $bytes);
 
         $this->assertEquals($available, $stream->available());
     }
@@ -116,37 +117,37 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            ['20 27 8B EF F6', 0, 15, '-107 -100 0 100 107', 15, 0, 0],
-            ['F700 F888 FAFF', 0, 10, '108 500 1131', 10, 0, 0],
-            ['FEFF FC88 FB00', 0, 13, '-1131 -500 -108', 13, 0, 0],
-            ['FFFFFF63C0 FFFFFF82FF FFFFFF8300 FFFFFFFB94 FF0000046C FF00007D00 FF00007D01 FF00009C40', 0, 42, '-40000 -32001 -32000 -1132 1132 32000 32001 40000', 42, 0, 0],
-            ['01 03 04 05 06 07 08 09 0A 0B 0D 0E 15 16 1E 1F 0C00 0C01 0C02 0C06 0C07 0C0C 0C10 0C11 0C21', 0, 176,
-             'hstem vstem vmoveto rlineto hlineto vlineto rrcurveto closepath callsubr return hsbw endchar rmoveto hmoveto vhcurveto hvcurveto dotsection vstem3 hstem3 seac sbw div callothersubr pop setcurrentpoint', 176, 0, 0],
-            ['20 27 8B EF F6', 0, 1, '-107', 4, 0, 1],
-            ['20 27 8B EF F6', 0, 4, '-107', 4, 0, 1],
-            ['20 27 8B EF F6', 0, 5, '-107 -100', 8, 0, 1],
-            ['20 27 8B EF F6', 1, 11, '-100 0 100 107', 11, 4, 0],
-            ['20 27 8B EF F6', 1, 12, '-100 0 100 107', 11, 4, 0],
-            ['20 27 8B EF F6', 15, 1, '', -1, 15, 0],
+            ['20 27 8B EF F6', 0, 20, '-107 -100 0 100 107 ', 20, 0, 0],
+            ['F700 F888 FAFF', 0, 13, '108 500 1131 ', 13, 0, 0],
+            ['FEFF FC88 FB00', 0, 16, '-1131 -500 -108 ', 16, 0, 0],
+            ['FFFFFF63C0 FFFFFF82FF FFFFFF8300 FFFFFFFB94 FF0000046C FF00007D00 FF00007D01 FF00009C40', 0, 50, '-40000 -32001 -32000 -1132 1132 32000 32001 40000 ', 50, 0, 0],
+            ['01 03 04 05 06 07 08 09 0A 0B 0D 0E 15 16 1E 1F 0C00 0C01 0C02 0C06 0C07 0C0C 0C10 0C11 0C21', 0, 201,
+             'hstem vstem vmoveto rlineto hlineto vlineto rrcurveto closepath callsubr return hsbw endchar rmoveto hmoveto vhcurveto hvcurveto dotsection vstem3 hstem3 seac sbw div callothersubr pop setcurrentpoint ', 201, 0, 0],
+            ['20 27 8B EF F6', 0, 1, '-107 ', 5, 0, 1],
+            ['20 27 8B EF F6', 0, 4, '-107 ', 5, 0, 1],
+            ['20 27 8B EF F6', 0, 5, '-107 ', 5, 0, 1],
+            ['20 27 8B EF F6', 0, 6, '-107 -100 ', 10, 0, 1],
+            ['20 27 8B EF F6', 1, 15, '-100 0 100 107 ', 15, 5, 0],
+            ['20 27 8B EF F6', 20, 1, '', -1, 20, 0],
         ];
     }
 
     /**
      * @dataProvider getDataForTestInputWithFile
      */
-    public function testInputWithFile($decodedFile, $encodedFile, $length)
+    public function testInputWithFile($encodedFile, $expectedFile, $length)
     {
-        $decodedFile = $this->base.$decodedFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $encodedFile = $this->base.$encodedFile;
 
         $encodedLineInput = new LineInputStream(new FileInputStream($encodedFile, 'rb'));
 
-        $decodedLineInput = new LineInputStream(new FileInputStream($decodedFile, 'rb'));
+        $expectedLineInput = new LineInputStream(new FileInputStream($expectedFile, 'rb'));
 
-        while (-1 !== ($encodedLineInput->read($encoded, $length)) && -1 !== ($decodedLineInput->read($expected, $length))) {
+        while (null !== ($encoded = $encodedLineInput->readLine()) && null !== ($expected = $expectedLineInput->readLine())) {
 
-            $stream = new CharStringDecodeInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($encoded)));
+            $stream = new CharStringDecodeInputStream(new AsciiHexadecimalToBinaryInputStream(new WashInputStream(new StringInputStream($encoded))));
 
             $decoded = '';
 
@@ -162,8 +163,8 @@ class CharStringDecodeInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInputWithFile()
     {
         return [
-            ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 1],
-            ['charstring-decrypted-to-decoded-001.txt', 'charstring-decrypted-to-encoded-hex-001.txt', 16],
+            ['charstring-decrypted-to-encoded-hex-001.txt', 'charstring-decrypted-to-decoded-001.txt', 1],
+            ['charstring-decrypted-to-encoded-hex-001.txt', 'charstring-decrypted-to-decoded-001.txt', 16],
         ];
     }
 }
