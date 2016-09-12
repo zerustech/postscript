@@ -79,7 +79,7 @@ class DecryptInputStream extends FilterInputStream
      */
     public function available()
     {
-        return parent::available() - ($this->n - $this->skipped);
+        return parent::available() > 0 ? 1 : 0;
     }
 
     /**
