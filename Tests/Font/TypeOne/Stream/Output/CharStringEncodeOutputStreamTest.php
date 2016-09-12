@@ -99,7 +99,7 @@ class CharStringEncodeOutputStreamTest extends \PHPUnit_Framework_TestCase
         $out = new StringOutputStream();
         $stream = new CharStringEncodeOutputStream($out);
         $this->assertEquals($count, $this->output->invoke($stream, $decoded));
-        $this->assertEquals(str_replace(' ', '', trim($expected)), strtoupper(bin2hex($out->__toString())));
+        $this->assertEquals(hex2bin(str_replace(' ', '', $expected)), $out->__toString());
     }
 
     public function getDataForTestOutput()
