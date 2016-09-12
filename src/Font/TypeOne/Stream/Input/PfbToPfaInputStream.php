@@ -57,12 +57,11 @@ class PfbToPfaInputStream extends FilterInputStream
     const MAGIC_NUMBER = 0x80;
 
     /**
-     * Before a header is recognized, this string severs as a buffer that
-     * contains up to 6 bytes for the next header.
+     * The internal buffer for storing bytes before converted.
      *
-     * @var string The buffer to help recognize the next header.
+     * @var string The internal buffer.
      */
-    private $buffer;
+    protected $buffer;
 
     /**
      * The PFB header information of the next PFB block. The structure of a PFB
@@ -77,30 +76,36 @@ class PfbToPfaInputStream extends FilterInputStream
      *
      * @var array The PFB header information.
      */
-    private $header;
+    protected $header;
 
     /**
      * @var bool This is a boolean flag that indicates if the header of the next
      * segment has been parsed successfully and it's ready to read the data now.
      */
-    private $ready = false;
+    protected $ready = false;
 
     /**
      * @var int This is the relative offset from the beginning of current data
      * segment.
      */
-    private $offset = 0;
+    protected $offset = 0;
 
     /**
      * @var bool This is a boolean that indicates whether to convert the eexec
      * block into hexadecimal format.
      */
-    private $convertToHex = true;
+    protected $convertToHex = true;
+
+    /**
+     * @var int The corresponding column of current offset in current binary
+     * data block.
+     */
+    protected $column = 0;
 
     /**
      * The maximum number of columns (hexadecimal pairs) in each line.
      */
-    private $width = 32;
+    protected $width = 32;
 
     /**
      * This method creates a new pfb to pfa input stream.
@@ -142,12 +147,11 @@ class PfbToPfaInputStream extends FilterInputStream
     /**
      * {@inheritdoc}
      *
-     * This method keeps reading pfb bytes from the subordinate stream, parsing
-     * header of the next data segment and storing the bytes from the data
-     * segment into ``$bytes``, until ``$length`` number of data bytes have been
-     * stored. The parsed data is in pfa format.
+     * This method keeps reading pfb bytes from the subordinate stream and
+     * converting the pfb bytes into pfa format, until ``$length`` number of pfa
+     * bytes have been generated, or EOF is reached.
      *
-     * @return int The number of parsed pfa bytes, or -1 if EOF.
+     * @return int The number of pfa bytes generated, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
     {
@@ -157,31 +161,35 @@ class PfbToPfaInputStream extends FilterInputStream
 
         while ($remaining > 0) {
 
-            if (-1 === ($count = $this->parseHeader($length))) {
+            if (false === $this->ready && -1 === ($count = $this->parseHeader($length))) {
 
+                // If ready is false, try to parse header.
+                // But if EOF has been reached, the EOF header, break current
+                // loop.
                 break;
             }
 
             if (false === $this->ready) {
 
+                // If header has not been parsed, continue to parse header.
                 continue;
             }
 
             if (-1 === ($count = $this->parseBlock($bytes, $remaining))) {
 
+                // If EOF has been reached, break current loop.
                 break;
             }
 
+            // ``$count`` pfb bytes have been parsed.
             $remaining -= $count;
 
-            $this->resetHeader();
+            if ($this->offset === $this->header['length']) {
 
-            if (-1 === ($count = $this->parseRemaining($bytes, $remaining))) {
+                $this->resetHeader();
 
                 break;
             }
-
-            $remaining -= $count;
         }
 
         return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
@@ -195,7 +203,7 @@ class PfbToPfaInputStream extends FilterInputStream
      * @return int The actual number of bytes read, or -1 if eof.
      * @throws IOException If failed to parse the header information.
      */
-    private function parseHeader($length)
+    protected function parseHeader($length)
     {
         $count = 0;
 
@@ -240,6 +248,7 @@ class PfbToPfaInputStream extends FilterInputStream
             $this->header['length'] = 0;
             $this->offset = 0;
             $this->ready = true;
+            $this->buffer = '';
 
             $count = -1;
 
@@ -251,7 +260,10 @@ class PfbToPfaInputStream extends FilterInputStream
             $this->header['length'] = ord($buffer[2]) | ord($buffer[3]) << 8 | ord($buffer[4]) << 16 | ord($buffer[5]) << 24;
             $this->offset = 0;
             $this->ready = true;
+            $this->buffer = '';
         }
+
+        $this->postParseHeader();
 
         return $count;
     }
@@ -261,15 +273,15 @@ class PfbToPfaInputStream extends FilterInputStream
      * method resets header, buffer as well as other variables to their initial
      * values.
      */
-    private function resetHeader()
+    protected function resetHeader()
     {
-        if ($this->header['length'] === $this->offset) {
+        $this->ready = false;
+        $this->header = null;
+        $this->buffer = '';
+        $this->offset = 0;
+        $this->column = 0;
 
-            $this->ready = false;
-            $this->header = null;
-            $this->buffer = '';
-            $this->offset = 0;
-        }
+        $this->postResetHeader();
     }
 
     /**
@@ -280,14 +292,8 @@ class PfbToPfaInputStream extends FilterInputStream
      * @param int $length The requested number of bytes to read.
      * @return int The actual number of bytes read, or -1 if EOF.
      */
-    private function parseBlock(&$bytes, $length)
+    protected function parseBlock(&$bytes, $length)
     {
-
-        if (self::TYPE_BINARY === $this->header['type'] && true === $this->convertToHex) {
-
-            $length = (0 === $length % 2) ? $length / 2 : ($length + 1) / 2;
-        }
-
         $remaining = $length;
 
         if (0 === ($available = min($remaining, $this->header['length'] - $this->offset))) {
@@ -300,6 +306,8 @@ class PfbToPfaInputStream extends FilterInputStream
             return -1;
         }
 
+        $this->column = $this->offset % $this->width;
+
         $this->offset += $count;
 
         if (self::TYPE_ASCII === $this->header['type']) {
@@ -309,9 +317,14 @@ class PfbToPfaInputStream extends FilterInputStream
 
         if (self::TYPE_BINARY === $this->header['type'] && true === $this->convertToHex) {
 
-            $bin = new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bytes), ($this->offset - strlen($bytes)) % $this->width, true, $this->width);
+            $bin2hex = new AsciiHexadecimalFormatInputStream(new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bytes)), $this->column, $this->width);
 
-            $count = $bin->read($bytes, strlen($bytes) * 2);
+            $bytes = '';
+
+            while (-1 !== ($bin2hex->read($hex, 2 * $length))) {
+
+                $bytes .= $hex;
+            }
         }
 
         $remaining -= $count;
@@ -319,24 +332,17 @@ class PfbToPfaInputStream extends FilterInputStream
         return $length - $remaining;
     }
 
-    private function parseRemaining(&$bytes, $length)
+    /**
+     * This method is called when header has been parsed successfully.
+     */
+    protected function postParseHeader()
     {
-        $remaining = $length;
+    }
 
-        if ($remaining <= 0) {
-
-            return 0;
-        }
-
-        if (-1 === ($count = $this->input($next, $remaining))) {
-
-            return -1;
-        }
-
-        $bytes .= $next;
-
-        $remaining -= $count;
-
-        return $length - $remaining;
+    /**
+     * This method is called after the header is reset.
+     */
+    protected function postResetHeader()
+    {
     }
 }

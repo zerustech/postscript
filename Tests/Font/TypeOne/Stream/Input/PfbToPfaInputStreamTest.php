@@ -41,6 +41,15 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
         $this->offset = $this->ref->getProperty('offset');
         $this->offset->setAccessible(true);
 
+        $this->convertToHex = $this->ref->getProperty('convertToHex');
+        $this->convertToHex->setAccessible(true);
+
+        $this->width = $this->ref->getProperty('width');
+        $this->width->setAccessible(true);
+
+        $this->column = $this->ref->getProperty('column');
+        $this->column->setAccessible(true);
+
         $this->input = $this->ref->getMethod('input');
         $this->input->setAccessible(true);
 
@@ -49,25 +58,42 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
 
     public function tearDown()
     {
+        $this->base = null;
+
         $this->input = null;
+        $this->column = null;
+        $this->width = null;
+        $this->convertToHex = null;
         $this->offset = null;
         $this->ready = null;
         $this->header = null;
         $this->buffer = null;
         $this->ref = null;
-        $this->base = null;
     }
 
-    public function testConstructor()
+    /**
+     * @dataProvider getDataForTestConstructor
+     */
+    public function testConstructor($convertToHex, $width)
     {
         $in = new FileInputStream($this->base.'NimbusRomanNo9L-Regular.pfb', 'rb');
 
-        $stream = new PfbToPfaInputStream($in);
+        $stream = new PfbToPfaInputStream($in, $convertToHex, $width);
 
         $this->assertEquals('', $this->buffer->getValue($stream));
         $this->assertNull($this->header->getValue($stream));
         $this->assertFalse($this->ready->getValue($stream));
         $this->assertEquals(0, $this->offset->getValue($stream));
+        $this->assertEquals($convertToHex, $this->convertToHex->getValue($stream));
+        $this->assertEquals($width, $this->width->getValue($stream));
+    }
+
+    public function getDataForTestConstructor()
+    {
+        return [
+            [true, 4],
+            [false, 8],
+        ];
     }
 
     /**
@@ -75,7 +101,7 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
      */
     public function testInput($convertToHex, $width, $pfb, $offset, $length, $expected, $count, $skipped, $available)
     {
-        $stream = new PfbToPfaInputStream(new AsciiHexadecimalToBinaryInputStream(new StringInputStream($pfb)), $convertToHex, $width);
+        $stream = new PfbToPfaInputStream(new StringInputStream($pfb), $convertToHex, $width);
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -89,24 +115,27 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
     public function getDataForTestInput()
     {
         return [
-            [false, 3, "80 01 05 00 00 00 68 65 6C 6C 6F", 0, 5, "hello", 5, 0, 0],
-            [false, 3, "80 01 05 00 00 00 68 65 6C 6C 6F", 0, 3, "hel", 3, 0, 1],
-            [false, 3, "80 01 05 00 00 00 68 65 6C 6C 6F", 1, 2, "el", 2, 1, 1],
-            [false, 3, "80 01 05 00 00 00 68 65 6C 6C 6F", 5, 1, "", -1, 5, 0],
-            [true, 3, "80 02 05 00 00 00 68 65 6C 6C 6F", 0, 10, "68656C\n6C6F", 10, 0, 0],
-            [true, 3, "80 02 0A 00 00 00 68 65 6C 6C 6F 68 65 6C 6C 6F", 0, 20, "68656C\n6C6F68\n656C6C\n6F", 20, 0, 0],
-            [true, 3, "80 02 0A 00 00 00 68 65 6C 6C 6F 68 65 6C 6C 6F", 1, 5, "656C\n6C", 6, 2, 1],
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 0, 5, "hello", 5, 0, 0],
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 0, 3, "hel", 3, 0, 1],
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 1, 2, "el", 2, 1, 1],
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 5, 1, "", -1, 5, 0],
+            [true,  3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 0, 5, "68656C\n6C6F", 5, 0, 0],
+            [true, 3, "\x80\x02\x0A\x00\x00\x00\x68\x65\x6c\x6c\x6f\x68\x65\x6c\x6c\x6f", 0, 10, "68656C\n6C6F68\n656C6C\n6F", 10, 0, 0],
+            [true, 3, "\x80\x02\x0A\x00\x00\x00\x68\x65\x6c\x6c\x6f\x68\x65\x6c\x6c\x6f", 1, 5, "656C\n6C6F68\n", 5, 1, 1],
+            [true, 3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 1, 4, "656C\n6C6F", 4, 1, 0],
+            [true, 3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 1, 1, "65", 1, 1, 1],
+            [true, 3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", 2, 2, "6C\n6C", 2, 2, 1],
         ];
     }
 
     /**
      * @dataProvider getDataForTestInputWithFile
      */
-    public function testInputWithFile($pfbFile, $pfaFile, $convertToHex, $length)
+    public function testInputWithFile($pfbFile, $expectedFile, $convertToHex, $length)
     {
         $pfbFile = $this->base.$pfbFile;
 
-        $pfaFile = $this->base.$pfaFile;
+        $expectedFile = $this->base.$expectedFile;
 
         $stream = new PfbToPfaInputStream(new FileInputStream($pfbFile, 'rb'), $convertToHex);
 
@@ -117,7 +146,7 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
             $output->write($bytes);
         }
 
-        $this->assertEquals(file_get_contents($pfaFile), $output->__toString());
+        $this->assertEquals(file_get_contents($expectedFile), $output->__toString());
     }
 
     public function getDataForTestInputWithFile()
