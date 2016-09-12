@@ -54,10 +54,16 @@ class AsciiHexadecimalFormatInputStream extends FilterInputStream
 
     /**
      * {@inheritdoc}
+     *
+     * @return int 1 if the subordinate stream is still available, or 0 
+     * otherwise.
      */
     public function available()
     {
-        return (parent::available() / 2 < $this->width - $this->column) ? parent::available() : parent::available() + 1 + (int)((parent::available() / 2 - $this->width + $this->column) / $this->width);
+        // If subordinate stream is a wash input stream, then 
+        // parent::available() returns either 1 or 0, 
+        // we can't calculate the exact number of bytes available here.
+        return parent::available() > 0 ? 1 : 0;
     }
 
     /**
