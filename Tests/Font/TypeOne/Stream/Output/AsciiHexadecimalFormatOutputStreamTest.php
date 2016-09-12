@@ -14,6 +14,7 @@ namespace ZerusTech\Component\Postscript\Tests\Font\TypeOne\Stream\Output;
 use ZerusTech\Component\IO\Exception;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\IO\Stream\Output\FileOutputStream;
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Output\AsciiHexadecimalFormatOutputStream;
 
@@ -142,7 +143,7 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         $expectedFile = $this->base.$expectedFile;
 
-        $hexInput = new FileInputStream($hexFile, 'rb');
+        $hexInput = new WashInputStream(new FileInputStream($hexFile, 'rb'));
 
         $out = new StringOutputStream();
 
@@ -154,7 +155,7 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
 
             $hexInput->read($bytes, $skip);
 
-            $this->output->invoke($stream, trim($bytes));
+            $this->output->invoke($stream, $bytes);
 
             $column = (strlen($bytes) / 2) % $width;
         }
@@ -163,7 +164,7 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         while (-1 !== $hexInput->read($bytes, $length)) {
 
-            $this->output->invoke($stream, trim($bytes));
+            $this->output->invoke($stream, $bytes);
         }
 
         $this->assertEquals(file_get_contents($expectedFile), $out->__toString());

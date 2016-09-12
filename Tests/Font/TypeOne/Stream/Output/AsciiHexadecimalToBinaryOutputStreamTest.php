@@ -14,6 +14,7 @@ namespace ZerusTech\Component\Postscript\Tests\Font\TypeOne\Stream\Output;
 use ZerusTech\Component\IO\Exception;
 use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Stream\Input\FileInputStream;
+use ZerusTech\Component\IO\Stream\Input\WashInputStream;
 use ZerusTech\Component\Postscript\Font\TypeOne\Stream\Output\AsciiHexadecimalToBinaryOutputStream;
 
 /**
@@ -116,7 +117,7 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         $hexFile = $this->base.$hexFile;
 
-        $hexInput = new FileInputStream($hexFile, 'rb');
+        $hexInput = new WashInputStream(new FileInputStream($hexFile, 'rb'));
 
         $out = new StringOutputStream();
 
@@ -124,7 +125,7 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
 
         while (-1 !== $hexInput->read($bytes, $length)) {
 
-            $this->output->invoke($stream, trim($bytes));
+            $this->output->invoke($stream, $bytes);
         }
 
         $this->assertEquals(file_get_contents($expectedFile), $out->__toString());
