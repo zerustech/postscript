@@ -127,7 +127,7 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
             $this->output->invoke($stream, trim($bytes));
         }
 
-        $this->assertEquals(trim(file_get_contents($expectedFile)), $out->__toString());
+        $this->assertEquals(file_get_contents($expectedFile), $out->__toString());
     }
 
     public function getDataForTestOutputWithFile()
