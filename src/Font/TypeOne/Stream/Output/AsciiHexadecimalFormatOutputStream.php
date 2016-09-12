@@ -64,10 +64,18 @@ class AsciiHexadecimalFormatOutputStream extends FilterOutputStream
      *
      * This method formats ``$bytes`` and writes the formatted string to the
      * subordinate output stream.
+     *
+     * @throws \InvalidArgumentException If ``$bytes`` is not a valid
+     * hexadecimal string.
      */
     protected function output($bytes)
     {
         $hex = '';
+
+        if (1 === preg_match("/[^0-9a-fA-F]/", $bytes)) {
+
+            throw new \InvalidArgumentException(sprintf("%s is not a valid hexadecimal string", $bytes));
+        }
 
         for ($i = 0; $i < strlen($bytes); $i++) {
 

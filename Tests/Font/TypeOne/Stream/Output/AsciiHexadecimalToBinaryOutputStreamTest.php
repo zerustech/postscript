@@ -80,6 +80,33 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
         ];
     }
 
+
+    /**
+     * @dataProvider getDataForTestOutputWithException
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessageRegex /^.* is not a valid hexadecimal string.$/
+     */
+    public function testOutputWithException($hex)
+    {
+        $out = new StringOutputStream();
+        $stream = new AsciiHexadecimalToBinaryOutputStream($out);
+        $this->output->invoke($stream, $hex);
+    }
+
+    public function getDataForTestOutputWithException()
+    {
+        return [
+            ["68656C6C6F\n"],
+            ["68656C6C6F\t"],
+            ["68656C6C6F\r"],
+            ["68656C6C6F "],
+            ["68656C\n6C6F"],
+            ["68656C\r6C6F"],
+            ["68656C\t6C6F"],
+            ["68656C 6C6F"],
+        ];
+    }
+
     /**
      * @dataProvider getDataForTestOutputWithFile
      */
@@ -100,7 +127,7 @@ class AsciiHexadecimalToBinaryOutputStreamTest extends \PHPUnit_Framework_TestCa
             $this->output->invoke($stream, trim($bytes));
         }
 
-        $this->assertEquals(file_get_contents($expectedFile), $out->__toString());
+        $this->assertEquals(trim(file_get_contents($expectedFile)), $out->__toString());
     }
 
     public function getDataForTestOutputWithFile()

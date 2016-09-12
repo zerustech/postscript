@@ -45,10 +45,18 @@ class AsciiHexadecimalToBinaryOutputStream extends FilterOutputStream
      *
      * This method converts `$bytes`` to binary format and writes the converted
      * data to the subordinate stream.
+     *
+     * @throws \InvalidArgumentException If ``$bytes`` is not a valid
+     * hexadecimal string.
      */
     protected function output($bytes)
     {
         $bin = '';
+
+        if (1 === preg_match("/[^0-9a-fA-F]/", $bytes)) {
+
+            throw new \InvalidArgumentException(sprintf("%s is not a valid hexadecimal string", $bytes));
+        }
 
         for ($i = 0; $i < strlen($bytes); $i++) {
 

@@ -105,6 +105,34 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
+
+    /**
+     * @dataProvider getDataForTestOutputWithException
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessageRegex /^.* is not a valid hexadecimal string$/
+     */
+    public function testOutputWithException($hex)
+    {
+        $out = new StringOutputStream();
+        $stream = new AsciiHexadecimalFormatOutputStream($out);
+        $this->output->invoke($stream, $hex);
+    }
+
+    public function getDataForTestOutputWithException()
+    {
+        return [
+            ["68656C6C6F\n"],
+            ["68656C6C6F\t"],
+            ["68656C6C6F\r"],
+            ["68656C6C6F "],
+            ["68656C\n6C6F"],
+            ["68656C\r6C6F"],
+            ["68656C\t6C6F"],
+            ["68656C 6C6F"],
+        ];
+    }
+
+
     /**
      * @dataProvider getDataForTestOutputWithFile
      */
@@ -126,7 +154,7 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
 
             $hexInput->read($bytes, $skip);
 
-            $this->output->invoke($stream, $bytes);
+            $this->output->invoke($stream, trim($bytes));
 
             $column = (strlen($bytes) / 2) % $width;
         }
@@ -135,7 +163,7 @@ class AsciiHexadecimalFormatOutputStreamTest extends \PHPUnit_Framework_TestCase
 
         while (-1 !== $hexInput->read($bytes, $length)) {
 
-            $this->output->invoke($stream, $bytes);
+            $this->output->invoke($stream, trim($bytes));
         }
 
         $this->assertEquals(file_get_contents($expectedFile), $out->__toString());
