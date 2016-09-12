@@ -41,13 +41,13 @@ class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
     /**
      * {@inheritdoc}
      *
-     * @return int 1 if the subordinate stream is still available, or 0 
+     * @return int 1 if the subordinate stream is still available, or 0
      * otherwise.
      */
     public function available()
     {
-        // If subordinate stream is a wash input stream, then 
-        // parent::available() returns either 1 or 0, 
+        // If subordinate stream is a wash input stream, then
+        // parent::available() returns either 1 or 0,
         // we can't calculate the exact number of bytes available here.
         return (strlen($this->buffer) + parent::available()) > 0 ? 1 : 0;
     }
