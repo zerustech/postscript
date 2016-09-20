@@ -19,7 +19,7 @@ use ZerusTech\Component\IO\Stream\Output\StringOutputStream;
 use ZerusTech\Component\IO\Exception;
 
 /**
- * Test case for file ascii hexadecimal to binary input stream.
+ * Test case for pfb to pfa input stream.
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
@@ -28,9 +28,6 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
     public function setup()
     {
         $this->ref = new \ReflectionClass('ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input\PfbToPfaInputStream');
-
-        $this->buffer = $this->ref->getProperty('buffer');
-        $this->buffer->setAccessible(true);
 
         $this->header = $this->ref->getProperty('header');
         $this->header->setAccessible(true);
@@ -67,7 +64,6 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
         $this->offset = null;
         $this->ready = null;
         $this->header = null;
-        $this->buffer = null;
         $this->ref = null;
     }
 
@@ -80,7 +76,6 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $stream = new PfbToPfaInputStream($in, $convertToHex, $width);
 
-        $this->assertEquals('', $this->buffer->getValue($stream));
         $this->assertNull($this->header->getValue($stream));
         $this->assertFalse($this->ready->getValue($stream));
         $this->assertEquals(0, $this->offset->getValue($stream));
@@ -97,11 +92,119 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider getDataForTestParseHeader
+     */
+    public function testParseHeader($bytes, $expected, $header, $offset, $ready)
+    {
+        $stream = new PfbToPfaInputStream(new stringInputStream($bytes));
+
+        $this->assertEquals($expected, $stream->parseHeader());
+
+        $this->assertEquals($header, $this->header->getValue($stream));
+
+        $this->assertEquals($offset, $this->offset->getValue($stream));
+
+        $this->assertEquals($ready, $this->ready->getValue($stream));
+    }
+
+    public function getDataForTestParseHeader()
+    {
+        return [
+            ["\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", true, ['magic-number' => 0x80, 'type' => 0x01, 'length' => 0x05], 0, true],
+            ["\x80\x02\x0A\x00\x00\x00\x68\x65\x6c\x6c\x6f\x68\x65\x6c\x6c\x6f", true, ['magic-number' => 0x80, 'type' => 0x02, 'length' => 0x0a], 0, true],
+            ["\x80\x03", false, ['magic-number' => 0x80, 'type' => 0x03, 'length' => 0], 0, true, false],
+            ["\x80\x03\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", false, ['magic-number' => 0x80, 'type' => 0x03, 'length' => 0], 0, true],
+        ];
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Failed to parse margic number.
+     */
+    public function testParseHeaderWithInvalidMagicNumber()
+    {
+        $stream = new PfbToPfaInputStream(new StringInputStream("\x81\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f"));
+
+        $stream->parseHeader();
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Failed to parse data segment type information.
+     */
+    public function testParseHeaderWithInvalidDataType()
+    {
+        $stream = new PfbToPfaInputStream(new StringInputStream("\x80\x04\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f"));
+
+        $stream->parseHeader();
+    }
+
+    /**
+     * @dataProvider getDataForTestReadBlock
+     */
+    public function testReadBlock($convertToHex, $width, $pfb, $expected)
+    {
+        $stream = new PfbToPfaInputStream(new StringInputStream($pfb), $convertToHex, $width);
+
+        $i = 0;
+
+        for ($i = 0; $i < count($expected); $i++) {
+
+            $this->assertEquals($expected[$i], $stream->readBlock());
+        }
+    }
+
+    public function getDataForTestReadBlock()
+    {
+        return [
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", ["hello"]],
+            [true, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", ["hello"]],
+            [false,  3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", ["hello"]],
+            [true,  3, "\x80\x02\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f", ["68656C\n6C6F"]],
+            [false,  3, "\x80\x03", [null]],
+            [true,  3, "\x80\x03", [null]],
+            [false, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f\x80\x02\x05\x00\x00\x00\x77\x6f\x72\x6c\x64", ["hello", "world"]],
+            [true, 3, "\x80\x01\x05\x00\x00\x00\x68\x65\x6c\x6c\x6f\x80\x02\x05\x00\x00\x00\x77\x6f\x72\x6c\x64", ["hello", "776F72\n6C64"]],
+        ];
+    }
+
+    /**
+     * @dataProvider getDataForTestReadBlockWithFile
+     */
+    public function testReadBlockWithFile($pfbFile, $expectedFile, $convertToHex)
+    {
+        $pfbFile = $this->base.$pfbFile;
+
+        $expectedFile = $this->base.$expectedFile;
+
+        $stream = new PfbToPfaInputStream(new FileInputStream($pfbFile, 'rb'), $convertToHex);
+
+        $output = new StringOutputStream();
+
+        while (null !== $block = $stream->readBlock()) {
+
+            $output->write($block);
+        }
+
+        $this->assertEquals(substr(file_get_contents($expectedFile), 0, -532), $output->__toString());
+    }
+
+    public function getDataForTestReadBlockWithFile()
+    {
+        return [
+            ['NimbusRomanNo9L-Regular.pfb','NimbusRomanNo9L-Regular-pfb-to-hex.pfa', true],
+            ['NimbusRomanNo9L-Regular.pfb','NimbusRomanNo9L-Regular-pfb-to-bin.pfa', false],
+        ];
+    }
+
+    /**
      * @dataProvider getDataForTestInput
      */
     public function testInput($convertToHex, $width, $pfb, $offset, $length, $expected, $count, $skipped, $available)
     {
         $stream = new PfbToPfaInputStream(new StringInputStream($pfb), $convertToHex, $width);
+
+        $stream->parseHeader();
 
         $this->assertEquals($skipped, $stream->skip($offset));
 
@@ -141,9 +244,12 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
 
         $output = new StringOutputStream();
 
-        while (-1 !== $this->input->invokeArgs($stream, [&$bytes, $length])) {
+        while ($stream->parseHeader()) {
 
-            $output->write($bytes);
+            while (-1 !== $this->input->invokeArgs($stream, [&$bytes, $length])) {
+
+                $output->write($bytes);
+            }
         }
 
         $this->assertEquals(file_get_contents($expectedFile), $output->__toString());

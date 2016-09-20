@@ -57,13 +57,6 @@ class PfbToPfaInputStream extends FilterInputStream
     const MAGIC_NUMBER = 0x80;
 
     /**
-     * The internal buffer for storing bytes before converted.
-     *
-     * @var string The internal buffer.
-     */
-    protected $buffer;
-
-    /**
      * The PFB header information of the next PFB block. The structure of a PFB
      * header is as follows:
      *
@@ -112,14 +105,14 @@ class PfbToPfaInputStream extends FilterInputStream
      *
      * @param InputStreamInterface $input The subordinate stream, from which,
      * the PFB bytes will be read.
-     * @param bool Indicates whether to convert the eexec data block to ascii
+     * @param bool $convertToHex Indicates whether to convert the eexec data block to ascii
      * hexadecimal format, true by default.
+     * @param int $width The maximum number of columns for binary data block in
+     * hexadecimal format.
      */
     public function __construct(InputStreamInterface $input, $convertToHex = true, $width = 32)
     {
         parent::__construct($input);
-
-        $this->buffer = '';
 
         $this->header = null;
 
@@ -145,177 +138,159 @@ class PfbToPfaInputStream extends FilterInputStream
     }
 
     /**
+     * This method reads up to 6 bytes from current stream and parses PFB header
+     * information.
+     *
+     * @return int The actual number of bytes read, or -1 if eof.
+     * @throws \RuntimeException If failed to parse the header information.
+     */
+    public function parseHeader()
+    {
+        $parsed = false;
+
+        if (true === $this->ready) {
+
+            return true;
+        }
+
+        if (-1 === parent::input($header, 6)) {
+
+            return false;
+        }
+
+        if (strlen($header) >= 1 && self::MAGIC_NUMBER !== ord($header[0])) {
+
+            throw new \RuntimeException(sprintf("Failed to parse margic number."));
+        }
+
+        if (strlen($header) >= 2 && !in_array(ord($header[1]), [static::TYPE_ASCII, static::TYPE_BINARY, static::TYPE_EOF])) {
+
+            throw new \RuntimeException(sprintf("Failed to parse data segment type information."));
+        }
+
+        if (strlen($header) >= 2 && ord($header[1]) === self::TYPE_EOF) {
+
+            $this->header = [];
+            $this->header['magic-number'] = self::MAGIC_NUMBER;
+            $this->header['type'] = ord($header[1]);
+            $this->header['length'] = 0;
+            $this->offset = 0;
+            $this->ready = true;
+            $parsed = false;
+        }
+
+        if (6 === strlen($header) && ord($header[1]) !== self::TYPE_EOF) {
+
+            $this->header = [];
+            $this->header['magic-number'] = self::MAGIC_NUMBER;
+            $this->header['type'] = ord($header[1]);
+            $this->header['length'] = ord($header[2]) | ord($header[3]) << 8 | ord($header[4]) << 16 | ord($header[5]) << 24;
+            $this->offset = 0;
+            $this->ready = true;
+            $parsed = true;
+        }
+
+        $this->afterParseHeader();
+
+        return $parsed;
+    }
+
+    /**
+     * This method returns all bytes of current data block.
+     *
+     * @return string The bytes of current data block, or null if EOF.
+     */
+    public function readBlock()
+    {
+        $block = null;
+
+        if (true === $this->parseHeader()) {
+
+            $block = '';
+
+            while (-1 !== ($this->read($bytes, 1024))) {
+
+                $block .= $bytes;
+            }
+
+            // skip the last block.
+            if (1 === preg_match('/^([\n\r\t ]*0[\n\r\t ]*){512}cleartomark$/', $block)) {
+
+                $block = null;
+            }
+        }
+
+        return $block;
+    }
+
+    /**
      * {@inheritdoc}
      *
      * This method keeps reading pfb bytes from the subordinate stream and
      * converting the pfb bytes into pfa format, until ``$length`` number of pfa
-     * bytes have been generated, or EOF is reached.
+     * bytes have been generated, EOB (end of block) or EOF is reached.
+     *
+     * NOTE: the ``$parseHeader()`` method must be called before calling this 
+     * method, otherwise, this method will just return -1.
      *
      * @return int The number of pfa bytes generated, or -1 if EOF.
      */
     protected function input(&$bytes, $length)
     {
+        if (false === $this->ready) {
+
+            return -1;
+        }
+
         $bytes = '';
 
         $remaining = $length;
 
         while ($remaining > 0) {
 
-            if (false === $this->ready && -1 === ($count = $this->parseHeader($length))) {
-
-                // If ready is false, try to parse header.
-                // But if EOF has been reached, the EOF header, break current
-                // loop.
-                break;
-            }
-
-            if (false === $this->ready) {
-
-                // If header has not been parsed, continue to parse header.
-                continue;
-            }
-
-            if (-1 === ($count = $this->parseBlock($bytes, $remaining))) {
-
-                // If EOF has been reached, break current loop.
-                break;
-            }
-
-            // ``$count`` pfb bytes have been parsed.
-            $remaining -= $count;
-
-            if ($this->offset === $this->header['length']) {
+            // Resets header and breaks on EOB or EOF.
+            if (-1 === $count = $this->parseBlock($bytes, $remaining)) {
 
                 $this->resetHeader();
 
                 break;
             }
+
+            // ``$count`` pfb bytes have been parsed.
+            $remaining -= $count;
         }
 
         return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
     }
 
     /**
-     * This method reads up to 6 bytes from current stream and parses PFB header
-     * information.
+     * This method reads and parses bytes from current data block.
      *
-     * @param int $length The requested number of bytes to read.
-     * @return int The actual number of bytes read, or -1 if eof.
-     * @throws IOException If failed to parse the header information.
-     */
-    protected function parseHeader($length)
-    {
-        $count = 0;
-
-        // Header has already been parsed, returns 0
-        if (true === $this->ready) {
-
-            return $count;
-        }
-
-        // Reads, which is the least, either the number of missing bytes for
-        // passing a header, or the specified numbrer of bytes, from the
-        // subordinate stream.
-        if (min(6 - strlen($this->buffer), $length) > 0) {
-
-            $count = parent::input($bytes, min(6 - strlen($this->buffer), $length));
-        }
-
-        $buffer = ($this->buffer .= $bytes);
-
-        // If EOF has been reached, and there was no byte in the buffer, the
-        // buffer could still be empty now and count MUST be -1 in this case.
-        if (0 === strlen($buffer)) {
-
-            return $count;
-        }
-
-        if (strlen($buffer) >= 1 && self::MAGIC_NUMBER !== ord($buffer[0])) {
-
-            throw new IOException(sprintf("Failed to parse margic number."));
-        }
-
-        if (strlen($buffer) >= 2 && !in_array(ord($buffer[1]), [static::TYPE_ASCII, static::TYPE_BINARY, static::TYPE_EOF])) {
-
-            throw new IOException(sprintf("Failed to parse data segment type information."));
-        }
-
-        if (strlen($buffer) >= 2 && ord($buffer[1]) === self::TYPE_EOF) {
-
-            $this->header = [];
-            $this->header['magic-number'] = self::MAGIC_NUMBER;
-            $this->header['type'] = ord($buffer[1]);
-            $this->header['length'] = 0;
-            $this->offset = 0;
-            $this->ready = true;
-            $this->buffer = '';
-
-            $count = -1;
-
-        } else if (6 === strlen($buffer)) {
-
-            $this->header = [];
-            $this->header['magic-number'] = self::MAGIC_NUMBER;
-            $this->header['type'] = ord($buffer[1]);
-            $this->header['length'] = ord($buffer[2]) | ord($buffer[3]) << 8 | ord($buffer[4]) << 16 | ord($buffer[5]) << 24;
-            $this->offset = 0;
-            $this->ready = true;
-            $this->buffer = '';
-        }
-
-        $this->postParseHeader();
-
-        return $count;
-    }
-
-    /**
-     * When all bytes of current data block has been read and converted, this
-     * method resets header, buffer as well as other variables to their initial
-     * values.
-     */
-    protected function resetHeader()
-    {
-        $this->ready = false;
-        $this->header = null;
-        $this->buffer = '';
-        $this->offset = 0;
-        $this->column = 0;
-
-        $this->postResetHeader();
-    }
-
-    /**
-     * This method reads and parses the byte data from the upcoming data block.
+     * If $this->convertToHex is true, binary block will be converted to
+     * hexadecimal format, otherwise the original binary data will be retrieved
+     * (the char string bytes are still encrypted and encoded).
      *
      * @param string $bytes The buffer, into which, the bytes will be read and
      * stored.
      * @param int $length The requested number of bytes to read.
-     * @return int The actual number of bytes read, or -1 if EOF.
+     * @return int The actual number of bytes read, or -1 if EOB (end of block) or EOF.
      */
     protected function parseBlock(&$bytes, $length)
     {
         $remaining = $length;
 
-        if (0 === ($available = min($remaining, $this->header['length'] - $this->offset))) {
+        $count = 0;
 
-            return 0;
-        }
-
-        if (-1 === ($count = parent::input($bytes, $available))) {
+        // Returns -1 if EOB or EOF.
+        if (0 === ($available = min($remaining, $this->header['length'] - $this->offset)) || -1 === ($count = parent::input($bytes, $available))) {
 
             return -1;
         }
 
-        $this->column = $this->offset % $this->width;
-
-        $this->offset += $count;
-
-        if (self::TYPE_ASCII === $this->header['type']) {
-
-            $bytes = str_replace("\r", "\n", $bytes);
-        }
-
+        // Converts bytes read to ascii hexadecimal if necessary.
         if (self::TYPE_BINARY === $this->header['type'] && true === $this->convertToHex) {
+
+            $this->column = $this->offset % $this->width;
 
             $bin2hex = new AsciiHexadecimalFormatInputStream(new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bytes)), $this->column, $this->width);
 
@@ -327,6 +302,14 @@ class PfbToPfaInputStream extends FilterInputStream
             }
         }
 
+        // Converts ascii data block to linux format.
+        if (self::TYPE_ASCII === $this->header['type']) {
+
+            $bytes = str_replace("\r", "\n", $bytes);
+        }
+
+        $this->offset += $count;
+
         $remaining -= $count;
 
         return $length - $remaining;
@@ -335,14 +318,20 @@ class PfbToPfaInputStream extends FilterInputStream
     /**
      * This method is called when header has been parsed successfully.
      */
-    protected function postParseHeader()
+    protected function afterParseHeader()
     {
     }
 
     /**
-     * This method is called after the header is reset.
+     * When all bytes of current data block has been read and converted, this
+     * method resets header, buffer as well as other variables to their initial
+     * values.
      */
-    protected function postResetHeader()
+    private function resetHeader()
     {
+        $this->ready = false;
+        $this->header = null;
+        $this->offset = 0;
+        $this->column = 0;
     }
 }
