@@ -230,7 +230,7 @@ class PfbToPfaInputStream extends FilterInputStream
      * converting the pfb bytes into pfa format, until ``$length`` number of pfa
      * bytes have been generated, EOB (end of block) or EOF is reached.
      *
-     * NOTE: the ``$parseHeader()`` method must be called before calling this 
+     * NOTE: the ``$parseHeader()`` method must be called before calling this
      * method, otherwise, this method will just return -1.
      *
      * @return int The number of pfa bytes generated, or -1 if EOF.
