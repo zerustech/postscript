@@ -12,15 +12,18 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
-use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableFilterInputStream;
 
 /**
  * This class reads and decrypts the eexec / charstring encrypted data, in
  * binary format, from the subordinate stream.
  *
+ * This class is uncountable because its subordinate input stream might be
+ * uncountable. For example, a hex 2 bin input stream.
+ *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class DecryptInputStream extends FilterInputStream
+class DecryptInputStream extends UncountableFilterInputStream
 {
     /**
      * @var int The ``R`` value of a specific type of encryptor. This value does
@@ -76,14 +79,6 @@ class DecryptInputStream extends FilterInputStream
 
     /**
      * {@inheritdoc}
-     */
-    public function available()
-    {
-        return parent::available() > 0 ? 1 : 0;
-    }
-
-    /**
-     * {@inheritdoc}
      *
      * This method keeps reading ciphertext bytes from the subordinate stream
      * and decrypting the ciphertext into ``$bytes``, untill ``$length`` bytes
@@ -108,25 +103,22 @@ class DecryptInputStream extends FilterInputStream
                 break;
             }
 
-            for ($i = 0; $i < strlen($cipherText); $i++) {
+            $cipherByte = ord($cipherText);
 
-                $cipherByte = ord($cipherText[$i]);
+            $plainByte = ($cipherByte ^ ($this->r >> 8));
 
-                $plainByte = ($cipherByte ^ ($this->r >> 8));
+            $this->r = (($cipherByte + $this->r) * $this->c1 + $this->c2) % 65536;
 
-                $this->r = (($cipherByte + $this->r) * $this->c1 + $this->c2) % 65536;
+            if ($this->skipped < $this->n) {
 
-                if ($this->skipped < $this->n) {
+                $this->skipped++;
 
-                    $this->skipped++;
-
-                    continue;
-                }
-
-                $bytes .= chr($plainByte);
-
-                $remaining--;
+                continue;
             }
+
+            $bytes .= chr($plainByte);
+
+            $remaining--;
         }
 
         return (-1 === $count && $remaining === $length) ? -1 : strlen($bytes);
