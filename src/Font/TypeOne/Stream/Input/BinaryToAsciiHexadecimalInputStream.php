@@ -23,16 +23,6 @@ use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
 class BinaryToAsciiHexadecimalInputStream extends FilterInputStream
 {
     /**
-     * This method creates a new binary to ascii hexadecimal input stream.
-     *
-     * @param InputStreamInterface $in The subordinate input stream.
-     */
-    public function __construct(InputStreamInterface $in)
-    {
-        parent::__construct($in);
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function available()

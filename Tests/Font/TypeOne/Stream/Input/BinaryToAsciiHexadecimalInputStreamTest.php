@@ -44,15 +44,6 @@ class BinaryToAsciiHexadecimalInputStreamTest extends \PHPUnit_Framework_TestCas
         $this->ref = null;
     }
 
-    public function testConstructor()
-    {
-        $in = new StringInputStream('');
-
-        $stream = new BinaryToAsciiHexadecimalInputStream($in);
-
-        $this->assertSame($in, $this->in->getValue($stream));
-    }
-
     /**
      * @dataProvider getDataForTestInput
      */
