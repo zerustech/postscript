@@ -12,7 +12,7 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Exception\IOException;
-use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableFilterInputStream;
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
 
@@ -30,11 +30,14 @@ use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
  * - Type 3: EOF. This is a flag that indicates that the end of the data
  * segement has been reached.
  *
+ * This class is uncountable because it's impossible to predict the length of
+ * pfa file until EOF is reached.
+ *
  * {@link https://partners.adobe.com/public/developer/en/font/5040.Download_Fonts.pdf downloadable postscript fonts}
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class PfbToPfaInputStream extends FilterInputStream
+class PfbToPfaInputStream extends UncountableFilterInputStream
 {
     /**
      * This constant represents data segment type 1.
@@ -125,16 +128,92 @@ class PfbToPfaInputStream extends FilterInputStream
         $this->width = $width;
     }
 
+
     /**
-     * {@inheritdoc}
+     * This method returns all bytes of current data block.
      *
-     * Because it's impossible to predict the length of pfa bytes, this
-     * method returns 1 if the subordinate stream is still available, or 0
-     * otherwise.
+     * @return string The bytes of current data block, or null if EOF.
      */
-    public function available()
+    public function readBlock()
     {
-        return parent::available() > 0 ? 1 : 0;
+        $block = null;
+
+        if (true === $this->parseHeader()) {
+
+            $block = '';
+
+            while (-1 !== ($this->parseBlock($bytes, 1024))) {
+
+                $block .= $bytes;
+            }
+
+            // skip the last block.
+            if (1 === preg_match('/^([\n\r\t ]*0[\n\r\t ]*){512}cleartomark$/', $block)) {
+
+                $block = null;
+            }
+
+            $this->resetHeader();
+        }
+
+        return $block;
+    }
+
+    /**
+     * This method reads and parses bytes from current data block.
+     *
+     * If $this->convertToHex is true, binary block will be converted to
+     * hexadecimal format, otherwise the original binary data will be retrieved
+     * (the char string bytes are still encrypted and encoded).
+     *
+     * @param string $bytes The buffer, into which, the bytes will be read and
+     * stored.
+     * @param int $length The requested number of bytes to read.
+     * @return int The actual number of bytes read, or -1 if EOB (end of block) or EOF.
+     */
+    protected function parseBlock(&$bytes, $length)
+    {
+        $remaining = min($length, $this->header['length'] - $this->offset);
+
+        // Returns -1 if EOB or EOF.
+        if (0 === $remaining || -1 === $count = $this->in->read($bytes, $remaining)) {
+
+            return -1;
+        }
+
+        // Converts bytes read to ascii hexadecimal if necessary.
+        if (self::TYPE_BINARY === $this->header['type'] && true === $this->convertToHex) {
+
+            $this->column = $this->offset % $this->width;
+
+            $bin2hex = new AsciiHexadecimalFormatInputStream(new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bytes)), $this->column, $this->width);
+
+            $bytes = '';
+
+            while (-1 !== ($bin2hex->read($hex, 2 * $length))) {
+
+                $bytes .= $hex;
+            }
+        }
+
+        // Converts ascii data block to linux format.
+        if (self::TYPE_ASCII === $this->header['type']) {
+
+            $bytes = str_replace("\r", "\n", $bytes);
+        }
+
+        $this->offset += $count;
+
+        $remaining -= $count;
+
+        return $length - $remaining;
+    }
+
+    /**
+     * This method is called when header has been parsed successfully.
+     */
+    protected function afterParseHeader()
+    {
     }
 
     /**
@@ -144,7 +223,7 @@ class PfbToPfaInputStream extends FilterInputStream
      * @return int The actual number of bytes read, or -1 if eof.
      * @throws \RuntimeException If failed to parse the header information.
      */
-    public function parseHeader()
+    private function parseHeader()
     {
         $parsed = false;
 
@@ -153,7 +232,7 @@ class PfbToPfaInputStream extends FilterInputStream
             return true;
         }
 
-        if (-1 === parent::input($header, 6)) {
+        if (-1 === $this->in->read($header, 6)) {
 
             return false;
         }
@@ -193,133 +272,6 @@ class PfbToPfaInputStream extends FilterInputStream
         $this->afterParseHeader();
 
         return $parsed;
-    }
-
-    /**
-     * This method returns all bytes of current data block.
-     *
-     * @return string The bytes of current data block, or null if EOF.
-     */
-    public function readBlock()
-    {
-        $block = null;
-
-        if (true === $this->parseHeader()) {
-
-            $block = '';
-
-            while (-1 !== ($this->read($bytes, 1024))) {
-
-                $block .= $bytes;
-            }
-
-            // skip the last block.
-            if (1 === preg_match('/^([\n\r\t ]*0[\n\r\t ]*){512}cleartomark$/', $block)) {
-
-                $block = null;
-            }
-        }
-
-        return $block;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * This method keeps reading pfb bytes from the subordinate stream and
-     * converting the pfb bytes into pfa format, until ``$length`` number of pfa
-     * bytes have been generated, EOB (end of block) or EOF is reached.
-     *
-     * NOTE: the ``$parseHeader()`` method must be called before calling this
-     * method, otherwise, this method will just return -1.
-     *
-     * @return int The number of pfa bytes generated, or -1 if EOF.
-     */
-    protected function input(&$bytes, $length)
-    {
-        if (false === $this->ready) {
-
-            return -1;
-        }
-
-        $bytes = '';
-
-        $remaining = $length;
-
-        while ($remaining > 0) {
-
-            // Resets header and breaks on EOB or EOF.
-            if (-1 === $count = $this->parseBlock($bytes, $remaining)) {
-
-                $this->resetHeader();
-
-                break;
-            }
-
-            // ``$count`` pfb bytes have been parsed.
-            $remaining -= $count;
-        }
-
-        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
-    }
-
-    /**
-     * This method reads and parses bytes from current data block.
-     *
-     * If $this->convertToHex is true, binary block will be converted to
-     * hexadecimal format, otherwise the original binary data will be retrieved
-     * (the char string bytes are still encrypted and encoded).
-     *
-     * @param string $bytes The buffer, into which, the bytes will be read and
-     * stored.
-     * @param int $length The requested number of bytes to read.
-     * @return int The actual number of bytes read, or -1 if EOB (end of block) or EOF.
-     */
-    protected function parseBlock(&$bytes, $length)
-    {
-        $remaining = $length;
-
-        $count = 0;
-
-        // Returns -1 if EOB or EOF.
-        if (0 === ($available = min($remaining, $this->header['length'] - $this->offset)) || -1 === ($count = parent::input($bytes, $available))) {
-
-            return -1;
-        }
-
-        // Converts bytes read to ascii hexadecimal if necessary.
-        if (self::TYPE_BINARY === $this->header['type'] && true === $this->convertToHex) {
-
-            $this->column = $this->offset % $this->width;
-
-            $bin2hex = new AsciiHexadecimalFormatInputStream(new BinaryToAsciiHexadecimalInputStream(new StringInputStream($bytes)), $this->column, $this->width);
-
-            $bytes = '';
-
-            while (-1 !== ($bin2hex->read($hex, 2 * $length))) {
-
-                $bytes .= $hex;
-            }
-        }
-
-        // Converts ascii data block to linux format.
-        if (self::TYPE_ASCII === $this->header['type']) {
-
-            $bytes = str_replace("\r", "\n", $bytes);
-        }
-
-        $this->offset += $count;
-
-        $remaining -= $count;
-
-        return $length - $remaining;
-    }
-
-    /**
-     * This method is called when header has been parsed successfully.
-     */
-    protected function afterParseHeader()
-    {
     }
 
     /**
