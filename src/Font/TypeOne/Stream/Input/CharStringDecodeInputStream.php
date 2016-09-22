@@ -12,7 +12,7 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
-use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableBufferableFilterInputStream;
 
 /**
  * This class reads char string encoded data from the subordinate stream and
@@ -20,7 +20,7 @@ use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class CharStringDecodeInputStream extends FilterInputStream
+class CharStringDecodeInputStream extends UncountableBufferableFilterInputStream
 {
     /**
      * @var array The list of char string commands, which maps command code to
@@ -57,65 +57,24 @@ class CharStringDecodeInputStream extends FilterInputStream
     ];
 
     /**
-     * @var string The internal buffer that stores bytes to be decoded.
-     */
-    private $buffer;
-
-    /**
-     * This method creates a new decrypt input stream.
-     */
-    public function __construct(InputStreamInterface $in)
-    {
-        parent::__construct($in);
-
-        $this->buffer = '';
-    }
-
-    /**
-     * {@inheritdoc}
+     * This method returns the next token decoded from the subordinate input
+     * stream.
      *
-     * @return int 1 if the subordinate input stream is till available, or 0
-     * otherwise.
+     * @return string The next token, or null if EOF.
      */
-    public function available()
+    public function readToken()
     {
-        return (strlen($this->buffer) + parent::available()) > 0 ? 1 : 0;
-    }
+        $token = null;
 
-    /**
-     * {@inheritdoc}
-     *
-     * This methods keeps reading bytes from the subordinate stream and
-     * decoding the data into ``$bytes``, untill at least ``$length`` bytes have
-     * been decoded.
-     *
-     * @return int The number of bytes decoded, or -1 if EOF.
-     */
-    protected function input(&$bytes, $length)
-    {
-        $remaining = $length;
+        while (-1 !== $this->in->read($encoded, 1)) {
 
-        $bytes = '';
-
-        while ($remaining > 0) {
-
-            if (-1 === $count = parent::input($encoded, 1)) {
+            if (null !== $token = $this->decode($encoded)) {
 
                 break;
             }
-
-            for ($i = 0; $i < strlen($encoded); $i++) {
-
-                if (null !== ($decoded = $this->decode($encoded[$i]))) {
-
-                    $bytes .= $decoded.' ';
-
-                    $remaining -= strlen($decoded) + 1;
-                }
-            }
         }
 
-        return (-1 === $count && $remaining === $length) ? -1 : $length - $remaining;
+        return $token;
     }
 
     /**
