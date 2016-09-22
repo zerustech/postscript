@@ -12,7 +12,7 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
-use ZerusTech\Component\IO\Stream\Input\UnpredictableFilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableBufferableFilterInputStream;
 
 /**
  * This class reads decoded char string source code from the subordinate input
@@ -20,25 +20,8 @@ use ZerusTech\Component\IO\Stream\Input\UnpredictableFilterInputStream;
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class CharStringFormatInputStream extends UnpredictableFilterInputStream
+class CharStringFormatInputStream extends UncountableBufferableFilterInputStream
 {
-    /**
-     * @var string The internal buffer to store bytes before being formatted.
-     */
-    private $buffer;
-
-    /**
-     * This method creates a new source format input stream.
-     *
-     * @param InputStreamInterface $in The subordinate input stream.
-     */
-    public function __construct(InputStreamInterface $in)
-    {
-        parent::__construct($in);
-
-        $this->buffer = '';
-    }
-
     /**
      * This method reads decoded char string source code from the subordinate
      * stream and formats the source with tab and line feeds.
@@ -55,7 +38,7 @@ class CharStringFormatInputStream extends UnpredictableFilterInputStream
 
         while (1 !== $matched = preg_match('/^[^a-zA-Z_]*([a-zA-Z][a-zA-Z_0-9]+)[ ]/', $this->buffer, $matches, PREG_OFFSET_CAPTURE)) {
 
-            if (-1 === parent::input($bytes, 1024)) {
+            if (-1 === $this->in->read($bytes, 1024)) {
 
                 break;
             }

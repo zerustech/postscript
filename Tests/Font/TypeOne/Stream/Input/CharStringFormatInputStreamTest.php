@@ -48,15 +48,6 @@ class CharStringFormatInputStreamTest extends \PHPUnit_Framework_TestCase
         $this->ref = null;
     }
 
-    public function testConstructor()
-    {
-        $in = new StringInputStream('');
-
-        $stream = new CharStringFormatInputStream($in);
-
-        $this->assertSame($in, $this->in->getValue($stream));
-    }
-
     /**
      * @dataProvider getDataForTestFormat
      */
