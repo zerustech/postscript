@@ -12,46 +12,19 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
-use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableBufferableFilterInputStream;
 
 /**
  * This class reads ascii hexadecimal data from the subordinate input stream and
  * converts the data to binary format.
  *
+ * This class is a subclass of uncountable bufferable filter input stream,
+ * because it's subordinate input stream might be uncountable.
+ *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class AsciiHexadecimalToBinaryInputStream extends FilterInputStream
+class AsciiHexadecimalToBinaryInputStream extends UncountableBufferableFilterInputStream
 {
-    /**
-     * @var string The internal buffer that stores hexadecimal byte that has not
-     * been paired.
-     */
-    private $buffer = '';
-
-    /**
-     * This method creates a new ``ascii hexadecimal to binary`` input stream.
-     */
-    public function __construct(InputStreamInterface $input)
-    {
-        parent::__construct($input);
-
-        $this->buffer = '';
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @return int 1 if the subordinate stream is still available, or 0
-     * otherwise.
-     */
-    public function available()
-    {
-        // If subordinate stream is a wash input stream, then
-        // parent::available() returns either 1 or 0,
-        // we can't calculate the exact number of bytes available here.
-        return (strlen($this->buffer) + parent::available()) > 0 ? 1 : 0;
-    }
-
     /**
      * {@inheritdoc}
      *
