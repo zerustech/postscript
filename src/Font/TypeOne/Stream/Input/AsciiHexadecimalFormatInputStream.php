@@ -12,7 +12,7 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
-use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableFilterInputStream;
 
 /**
  * This class reads hexadecimal bytes from the subordinate input stream and
@@ -22,9 +22,13 @@ use ZerusTech\Component\IO\Stream\Input\FilterInputStream;
  * Each pair of hexadecimal bytes represents a column, and by default there are
  * up to 32 columns, which is 64 bytes, in a line.
  *
+ * This class is uncountable because its suboridinate input stream might be
+ * uncountable. The original hexadecimal sequence might contain space characters
+ * that must be removed through a wash input stream, which is uncountable.
+ *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class AsciiHexadecimalFormatInputStream extends FilterInputStream
+class AsciiHexadecimalFormatInputStream extends UncountableFilterInputStream
 {
     /**
      * @var int The column index of the next hexadecimal pair.
@@ -50,20 +54,6 @@ class AsciiHexadecimalFormatInputStream extends FilterInputStream
         $this->column = $column;
 
         $this->width = $width;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @return int 1 if the subordinate stream is still available, or 0
-     * otherwise.
-     */
-    public function available()
-    {
-        // If subordinate stream is a wash input stream, then
-        // parent::available() returns either 1 or 0,
-        // we can't calculate the exact number of bytes available here.
-        return parent::available() > 0 ? 1 : 0;
     }
 
     /**
