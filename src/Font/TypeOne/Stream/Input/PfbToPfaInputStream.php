@@ -12,7 +12,7 @@
 namespace ZerusTech\Component\Postscript\Font\TypeOne\Stream\Input;
 
 use ZerusTech\Component\IO\Exception\IOException;
-use ZerusTech\Component\IO\Stream\Input\UncountableFilterInputStream;
+use ZerusTech\Component\IO\Stream\Input\UncountableBufferableFilterInputStream;
 use ZerusTech\Component\IO\Stream\Input\StringInputStream;
 use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
 
@@ -37,7 +37,7 @@ use ZerusTech\Component\IO\Stream\Input\InputStreamInterface;
  *
  * @author Michael Lee <michael.lee@zerustech.com>
  */
-class PfbToPfaInputStream extends UncountableFilterInputStream
+class PfbToPfaInputStream extends UncountableBufferableFilterInputStream
 {
     /**
      * This constant represents data segment type 1.
@@ -142,7 +142,7 @@ class PfbToPfaInputStream extends UncountableFilterInputStream
 
             $block = '';
 
-            while (-1 !== ($this->parseBlock($bytes, 1024))) {
+            while (null !== $bytes = $this->parseBlock()) {
 
                 $block .= $bytes;
             }
@@ -160,25 +160,26 @@ class PfbToPfaInputStream extends UncountableFilterInputStream
     }
 
     /**
-     * This method reads and parses bytes from current data block.
+     * This method reads and parses bytes from current data block and returns
+     * the parsed bytes.
      *
      * If $this->convertToHex is true, binary block will be converted to
      * hexadecimal format, otherwise the original binary data will be retrieved
      * (the char string bytes are still encrypted and encoded).
      *
-     * @param string $bytes The buffer, into which, the bytes will be read and
-     * stored.
-     * @param int $length The requested number of bytes to read.
-     * @return int The actual number of bytes read, or -1 if EOB (end of block) or EOF.
+     * @param int $readBufferSize The requested number of bytes to read.
+     * @return string The bytes parsed, or null if EOB (end of block) or EOF.
      */
-    protected function parseBlock(&$bytes, $length)
+    protected function parseBlock($readBufferSize = 1024)
     {
-        $remaining = min($length, $this->header['length'] - $this->offset);
+        $bytes = null;
+
+        $remaining = min($readBufferSize, $this->header['length'] - $this->offset);
 
         // Returns -1 if EOB or EOF.
         if (0 === $remaining || -1 === $count = $this->in->read($bytes, $remaining)) {
 
-            return -1;
+            return $bytes;
         }
 
         // Converts bytes read to ascii hexadecimal if necessary.
@@ -190,7 +191,7 @@ class PfbToPfaInputStream extends UncountableFilterInputStream
 
             $bytes = '';
 
-            while (-1 !== ($bin2hex->read($hex, 2 * $length))) {
+            while (-1 !== ($bin2hex->read($hex, 2 * $readBufferSize))) {
 
                 $bytes .= $hex;
             }
@@ -204,9 +205,7 @@ class PfbToPfaInputStream extends UncountableFilterInputStream
 
         $this->offset += $count;
 
-        $remaining -= $count;
-
-        return $length - $remaining;
+        return $bytes;
     }
 
     /**
