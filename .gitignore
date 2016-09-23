@@ -4,3 +4,4 @@ vendor
 .settings
 *.swp
 .DS_Store
+test
