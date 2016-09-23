@@ -47,6 +47,9 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
         $this->column = $this->ref->getProperty('column');
         $this->column->setAccessible(true);
 
+        $this->readBufferSize = $this->ref->getProperty('readBufferSize');
+        $this->readBufferSize->setAccessible(true);
+
         $this->input = $this->ref->getMethod('input');
         $this->input->setAccessible(true);
 
@@ -58,6 +61,7 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
         $this->base = null;
 
         $this->input = null;
+        $this->readBufferSize = null;
         $this->column = null;
         $this->width = null;
         $this->convertToHex = null;
@@ -70,24 +74,25 @@ class PfbToPfaInputStreamTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider getDataForTestConstructor
      */
-    public function testConstructor($convertToHex, $width)
+    public function testConstructor($convertToHex, $width, $readBufferSize)
     {
         $in = new FileInputStream($this->base.'NimbusRomanNo9L-Regular.pfb', 'rb');
 
-        $stream = new PfbToPfaInputStream($in, $convertToHex, $width);
+        $stream = new PfbToPfaInputStream($in, $convertToHex, $width, $readBufferSize);
 
         $this->assertNull($this->header->getValue($stream));
         $this->assertFalse($this->ready->getValue($stream));
         $this->assertEquals(0, $this->offset->getValue($stream));
         $this->assertEquals($convertToHex, $this->convertToHex->getValue($stream));
         $this->assertEquals($width, $this->width->getValue($stream));
+        $this->assertEquals($readBufferSize, $this->readBufferSize->getValue($stream));
     }
 
     public function getDataForTestConstructor()
     {
         return [
-            [true, 4],
-            [false, 8],
+            [true, 4, 32],
+            [false, 8, 64],
         ];
     }
 

@@ -113,9 +113,9 @@ class PfbToPfaInputStream extends UncountableBufferableFilterInputStream
      * @param int $width The maximum number of columns for binary data block in
      * hexadecimal format.
      */
-    public function __construct(InputStreamInterface $input, $convertToHex = true, $width = 32)
+    public function __construct(InputStreamInterface $input, $convertToHex = true, $width = 32, $readBufferSize = 1024)
     {
-        parent::__construct($input);
+        parent::__construct($input, $readBufferSize);
 
         $this->header = null;
 
