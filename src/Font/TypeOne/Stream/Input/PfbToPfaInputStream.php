@@ -167,14 +167,13 @@ class PfbToPfaInputStream extends UncountableBufferableFilterInputStream
      * hexadecimal format, otherwise the original binary data will be retrieved
      * (the char string bytes are still encrypted and encoded).
      *
-     * @param int $readBufferSize The requested number of bytes to read.
      * @return string The bytes parsed, or null if EOB (end of block) or EOF.
      */
-    protected function parseBlock($readBufferSize = 1024)
+    protected function parseBlock()
     {
         $bytes = null;
 
-        $remaining = min($readBufferSize, $this->header['length'] - $this->offset);
+        $remaining = min($this->readBufferSize, $this->header['length'] - $this->offset);
 
         // Returns -1 if EOB or EOF.
         if (0 === $remaining || -1 === $count = $this->in->read($bytes, $remaining)) {
@@ -191,7 +190,7 @@ class PfbToPfaInputStream extends UncountableBufferableFilterInputStream
 
             $bytes = '';
 
-            while (-1 !== ($bin2hex->read($hex, 2 * $readBufferSize))) {
+            while (-1 !== ($bin2hex->read($hex, 2 * $this->readBufferSize))) {
 
                 $bytes .= $hex;
             }
