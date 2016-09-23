@@ -38,7 +38,7 @@ class CharStringFormatInputStream extends UncountableBufferableFilterInputStream
 
         while (1 !== $matched = preg_match('/^[^a-zA-Z_]*([a-zA-Z][a-zA-Z_0-9]+)[ ]/', $this->buffer, $matches, PREG_OFFSET_CAPTURE)) {
 
-            if (-1 === $this->in->read($bytes, 1024)) {
+            if (-1 === $this->in->read($bytes, $this->readBufferSize)) {
 
                 break;
             }
@@ -58,7 +58,9 @@ class CharStringFormatInputStream extends UncountableBufferableFilterInputStream
 
         } else if (strlen($this->buffer) > 0) {
 
-            $formatted = trim($this->buffer);
+            // Trims line feed, carriage return and spaces, and appends a space
+            // to the end of the buffer.
+            $formatted = trim($this->buffer).' ';
 
             $this->buffer = '';
         }

@@ -66,7 +66,7 @@ class CharStringFormatInputStreamTest extends \PHPUnit_Framework_TestCase
         return [
             ['0 2 callothersubr ', ["0 2 callothersubr\n\t"]],
             ['-45 3 -10 10 -35 74 rrcurveto -249 568 rlineto ', ["-45 3 -10 10 -35 74 rrcurveto\n\t", "-249 568 rlineto\n\t"]],
-            ['-45 3 -10 10 -35 74 rrcurveto -249 568 rlineto 100 ', ["-45 3 -10 10 -35 74 rrcurveto\n\t", "-249 568 rlineto\n\t", "100"]],
+            ['-45 3 -10 10 -35 74 rrcurveto -249 568 rlineto 100 ', ["-45 3 -10 10 -35 74 rrcurveto\n\t", "-249 568 rlineto\n\t", "100 "]],
             ['', [null]]
         ];
     }
