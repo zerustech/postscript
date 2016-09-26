@@ -98,7 +98,7 @@ printf("%d bytes read: %s\n", $count, $string);
 ### CharStringDecodeInputStream ###
 
 This class reads char string encoded bytes from the subordinate input stream and
-decode them to plain text.
+decodes them to plain text.
 
 ```php
 <?php
