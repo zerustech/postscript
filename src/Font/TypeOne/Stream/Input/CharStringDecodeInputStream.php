@@ -209,7 +209,11 @@ class CharStringDecodeInputStream extends UncountableBufferableFilterInputStream
 
         $e = $a << 24 | $b << 16 | $c << 8 | $d;
 
-        $decoded = reset(unpack("l", pack("l", $e)));
+        // Assign the unpack result to a variable to avoid
+        // the "only variable can be passed by reference" issue.
+        $long = unpack("l", pack("l", $e));
+
+        $decoded = reset($long);
 
         $this->buffer = '';
 
