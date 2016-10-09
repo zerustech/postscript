@@ -482,14 +482,15 @@ printf("Bytes written: %s\n", $out->__toString());
 
 References
 ----------
-* [The zerustech/io project][2]
+* [The zerustech/io project][5]
 * [Adobe Type 1 Font Format][3]
 * [Variant File Formats for Font Type 1][4]
 
 [1]:  https://opensource.org/licenses/MIT "The MIT License (MIT)"
-[2]:  https://github.com/zerustech/io "The zerustech/io Project"
+[2]:  https://github.com/zerustech/postscript "The zerustech/postscript Project"
 [3]:  https://partners.adobe.com/public/developer/en/font/T1_SPEC.PDF "Adobe Type 1 Font Format"
 [4]:  https://www.math.utah.edu/~beebe/fonts/postscript-type-1-fonts.html#postscript-font-background "PostScript Type 1 fonts"
+[5]:  https://github.com/zerustech/io "The zerustech/io Project"
 
 License
 -------
