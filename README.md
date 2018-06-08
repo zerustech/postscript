@@ -7,6 +7,6 @@ This project has been moved to [GitLab][1].
 
 References
 ----------
-* [zerustech/io][1]
+* [zerustech/postscript][1]
 
-[1]:  https://gitlab.com/zerustech/io "zerustech/io"
+[1]:  https://gitlab.com/zerustech/postscript "zerustech/postscript"
